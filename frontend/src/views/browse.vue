@@ -1,16 +1,12 @@
 <template>
   <div>
     <NavBar />
-
     <div class="container">
-
       <div class="browse-header">
         <h2>Browse Products</h2>
         <p class="browse-sub">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }} found</p>
       </div>
-
       <input v-model="search" placeholder="Search products..." class="search" />
-
       <div class="categories">
         <div
           :class="['cat-chip', selectedCategory === '' ? 'active' : '']"
@@ -25,11 +21,12 @@
           {{ cat }}
         </div>
       </div>
-
-      <div v-if="filtered.length === 0" class="empty-state">
+      <div v-if="loading" class="empty-state">
+        <p>Loading products...</p>
+      </div>
+      <div v-else-if="filtered.length === 0" class="empty-state">
         <p>😕 No products match your search.</p>
       </div>
-
       <div class="products">
         <div v-for="p in filtered" :key="p.id" class="card">
           <div class="image-wrapper">
@@ -52,7 +49,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -60,12 +56,15 @@
 <script>
 import NavBar from "./NavBar.vue";
 
+const API = "http://localhost:5000";
+
 export default {
   components: { NavBar },
 
   data() {
     return {
-      products: JSON.parse(localStorage.getItem("products")) || [],
+      products: [],
+      loading: true,
       search: "",
       selectedCategory: "",
       categories: ["Clothing", "School Essentials", "Electronics"]
@@ -77,6 +76,17 @@ export default {
       return this.products
         .filter(p => p.name.toLowerCase().includes(this.search.toLowerCase()))
         .filter(p => this.selectedCategory ? p.category === this.selectedCategory : true);
+    }
+  },
+
+  async mounted() {
+    try {
+      const res = await fetch(`${API}/api/products`);
+      this.products = await res.json();
+    } catch (err) {
+      alert("Could not load products. Is Flask running?");
+    } finally {
+      this.loading = false;
     }
   },
 
@@ -103,17 +113,14 @@ export default {
   gap: 14px;
   margin-bottom: 16px;
 }
-
 .browse-header h2 {
   margin: 0;
 }
-
 .browse-sub {
   color: #999;
   font-size: 14px;
   margin: 0;
 }
-
 .cat-chip {
   padding: 9px 18px;
   background: white;
@@ -125,18 +132,15 @@ export default {
   transition: 0.2s;
   border: 2px solid transparent;
 }
-
 .cat-chip:hover {
   transform: translateY(-2px);
   background: #f0f0f0;
 }
-
 .cat-chip.active {
   background: #03120E;
   color: white;
   border-color: #03120E;
 }
-
 .card-category {
   font-size: 11px;
   text-transform: uppercase;
@@ -144,7 +148,6 @@ export default {
   color: #999;
   margin: 0 0 4px;
 }
-
 .btn-add {
   width: 100%;
   background: #03120E;
@@ -154,14 +157,12 @@ export default {
   font-size: 13px;
   font-weight: 600;
 }
-
 .btn-add:disabled {
   background: #ccc;
   color: #888;
   cursor: not-allowed;
   transform: none;
 }
-
 .empty-state {
   text-align: center;
   padding: 60px 20px;

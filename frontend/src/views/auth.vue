@@ -14,15 +14,19 @@
 
         <div class="field">
           <label>School Email</label>
-          <input v-model="email" placeholder="you@school.edu" type="email" />
+          <input v-model="email" placeholder="you@gbox.adnu.edu.ph" type="email" />
         </div>
         <div class="field">
           <label>Password</label>
           <input v-model="password" type="password" placeholder="••••••••" />
         </div>
 
-        <button class="btn-primary" @click="login">Login</button>
-        <button class="btn-secondary" @click="page = 'register'">
+        <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
+
+        <button class="btn-primary" @click="login" :disabled="loading">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
+        <button class="btn-secondary" @click="page = 'register'; errorMsg = ''">
           Create an account
         </button>
       </div>
@@ -33,7 +37,7 @@
 
         <div class="field">
           <label>School Email</label>
-          <input v-model="email" placeholder="you@school.edu" type="email" />
+          <input v-model="email" placeholder="you@gbox.adnu.edu.ph" type="email" />
         </div>
         <div class="field">
           <label>Password</label>
@@ -48,8 +52,12 @@
           </select>
         </div>
 
-        <button class="btn-primary" @click="register">Register</button>
-        <button class="btn-secondary" @click="page = 'login'">
+        <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
+
+        <button class="btn-primary" @click="register" :disabled="loading">
+          {{ loading ? 'Registering...' : 'Register' }}
+        </button>
+        <button class="btn-secondary" @click="page = 'login'; errorMsg = ''">
           Back to Login
         </button>
       </div>
@@ -59,50 +67,92 @@
 </template>
 
 <script>
+const API = "http://localhost:5000";
+
 export default {
   data() {
     return {
       page: "login",
       email: "",
       password: "",
-      role: ""
+      role: "",
+      loading: false,
+      errorMsg: ""
     };
   },
 
   methods: {
-    register() {
-      if (!this.email.endsWith("@school.edu")) {
-        alert("Please use your school email (@school.edu)");
+    async register() {
+      this.errorMsg = "";
+
+      if (!this.email.endsWith("@gbox.adnu.edu.ph")) {
+        this.errorMsg = "Please use your school email (@gbox.adnu.edu.ph).";
         return;
       }
       if (!this.role) {
-        alert("Please select a role");
+        this.errorMsg = "Please select a role.";
         return;
       }
 
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      if (users.find(u => u.email === this.email)) {
-        alert("An account with this email already exists.");
-        return;
+      this.loading = true;
+      try {
+        const res = await fetch(`${API}/api/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: this.email,
+            password: this.password,
+            role: this.role
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          this.errorMsg = data.message;
+          return;
+        }
+
+        alert("Registered successfully!");
+        this.page = "login";
+        this.email = "";
+        this.password = "";
+        this.role = "";
+      } catch (err) {
+        this.errorMsg = "Could not connect to server. Is Flask running?";
+      } finally {
+        this.loading = false;
       }
-
-      users.push({ email: this.email, password: this.password, role: this.role });
-      localStorage.setItem("users", JSON.stringify(users));
-
-      alert("Registered successfully!");
-      this.page = "login";
     },
 
-    login() {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      const user = users.find(
-        u => u.email === this.email && u.password === this.password
-      );
+    async login() {
+      this.errorMsg = "";
+      this.loading = true;
 
-      if (!user) return alert("Invalid email or password.");
+      try {
+        const res = await fetch(`${API}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: this.email,
+            password: this.password
+          })
+        });
 
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      this.$router.push("/");
+        const data = await res.json();
+
+        if (!res.ok) {
+          this.errorMsg = data.message;
+          return;
+        }
+
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        this.$router.push("/");
+      } catch (err) {
+        this.errorMsg = "Could not connect to server. Is Flask running?";
+      } finally {
+        this.loading = false;
+      }
     }
   }
 };
@@ -189,6 +239,15 @@ export default {
   box-shadow: 0 0 0 3px rgba(3, 18, 14, 0.08);
 }
 
+.error-msg {
+  color: #e63946;
+  font-size: 13px;
+  margin: 0 0 10px;
+  background: #fff0f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
 .btn-primary {
   width: 100%;
   padding: 12px;
@@ -203,9 +262,15 @@ export default {
   transition: background 0.2s, transform 0.15s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #0a2a23;
   transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-secondary {
@@ -224,6 +289,5 @@ export default {
 
 .btn-secondary:hover {
   background: #e8e8e8;
-  transform: none;
 }
 </style>
