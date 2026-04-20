@@ -707,6 +707,26 @@ def admin_messages():
         print("ADMIN MESSAGES ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
+@app.route("/api/messages/mark-read", methods=["POST"])
+def mark_messages_read():
+    """Mark all messages from sender -> reader as read."""
+    data = request.get_json()
+    reader_id = data.get("reader_id")
+    sender_id = data.get("sender_id")
+    if not reader_id or not sender_id:
+        return jsonify({"message": "reader_id and sender_id required"}), 400
+    try:
+        db.session.execute(db.text("""
+            UPDATE MESSAGES SET is_read = 1
+            WHERE receiver_id = :reader AND sender_id = :sender AND is_read = 0
+        """), {"reader": int(reader_id), "sender": int(sender_id)})
+        db.session.commit()
+        return jsonify({"message": "Messages marked as read"})
+    except Exception as e:
+        db.session.rollback()
+        print("MARK READ ERROR:", e)
+        return jsonify({"message": "Server error"}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
