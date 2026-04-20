@@ -1,121 +1,93 @@
 <template>
-  <nav class="navbar">
-    <div class="nav-container">
+  <nav class="wm-nav">
+    <div class="wm-nav__inner">
 
-      <!-- Logo -->
-      <router-link to="/" class="brand">
-        <span class="logo">🛍️</span>
-        White <span class="highlight">Market</span>
+      <router-link to="/" class="wm-brand">
+        <div class="wm-brand__mark">W</div>
+        <span class="wm-brand__text">White<span class="wm-brand__gold">Market</span></span>
       </router-link>
 
-      <!-- Links -->
-      <div class="links">
+      <div class="wm-nav__links">
+        <router-link to="/products" class="wm-nav__link">Marketplace</router-link>
+        <router-link to="/dashboard" class="wm-nav__link" v-if="auth.user">My Shop</router-link>
+      </div>
 
-        <router-link to="/products" class="nav-item">Market</router-link>
-        <router-link to="/dashboard" class="nav-item" v-if="auth.user">My Shop</router-link>
+      <div class="wm-nav__actions" v-if="auth.user">
 
-        <!-- Messages -->
-        <router-link to="/messages" class="icon-btn" v-if="auth.user">
-          <i class="fa-solid fa-message"></i>
-          <span v-if="unreadMsgCount > 0" class="badge">{{ unreadMsgCount > 9 ? '9+' : unreadMsgCount }}</span>
+        <router-link to="/messages" class="wm-icon-btn" title="Messages">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span v-if="unreadMsgCount > 0" class="wm-badge">{{ unreadMsgCount > 9 ? '9+' : unreadMsgCount }}</span>
         </router-link>
 
-        <!-- Notifications -->
-        <div class="icon-btn notif-wrap" @click.stop="toggleNotif" v-if="auth.user" v-click-outside="closeNotif">
-          <i class="fa-solid fa-bell"></i>
-          <span v-if="unreadNotifCount > 0" class="badge">{{ unreadNotifCount > 9 ? '9+' : unreadNotifCount }}</span>
-
-          <Transition name="dropdown">
-            <div v-if="showNotif" class="dropdown notif-dropdown" @click.stop>
-              <div class="dropdown-title-row">
-                <p class="dropdown-title">Notifications</p>
-                <button
-                  v-if="unreadNotifCount > 0"
-                  class="mark-read-btn"
-                  @click.stop="markAllRead"
-                >
-                  Mark all read
-                </button>
+        <div class="wm-icon-btn wm-notif-wrap" @click.stop="toggleNotif" v-click-outside="closeNotif">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span v-if="unreadNotifCount > 0" class="wm-badge">{{ unreadNotifCount > 9 ? '9+' : unreadNotifCount }}</span>
+          <Transition name="wm-drop">
+            <div v-if="showNotif" class="wm-dropdown wm-dropdown--wide" @click.stop>
+              <div class="wm-dd-head">
+                <span>Notifications</span>
+                <button v-if="unreadNotifCount > 0" @click.stop="markAllRead" class="wm-dd-link">Mark all read</button>
               </div>
-
-              <div v-if="loadingNotifs" class="notif-loading">
-                <div class="notif-skeleton" v-for="n in 3" :key="n"></div>
-              </div>
-
-              <p v-else-if="notifications.length === 0" class="empty-notif">
-                No notifications yet
-              </p>
-
-              <div
-                v-for="(n, i) in notifications"
-                :key="n.id || i"
-                class="notif-item"
-                :class="{ unread: !n.is_read }"
-              >
-                <div class="notif-dot-wrap">
-                  <span :class="['notif-dot', n.is_read ? 'read' : 'unread']"></span>
-                </div>
-                <div class="notif-text">
-                  <p>{{ n.message }}</p>
-                  <span>{{ formatTime(n.created_at) }}</span>
+              <div v-if="loadingNotifs" style="padding:12px"><div class="wm-skel" style="height:44px;margin-bottom:8px;border-radius:8px" v-for="n in 3" :key="n"></div></div>
+              <p v-else-if="!notifications.length" class="wm-dd-empty">No notifications yet</p>
+              <div v-for="(n,i) in notifications" :key="n.id||i" class="wm-notif-item" :class="{'wm-notif-item--unread':!n.is_read}">
+                <span class="wm-notif-dot" :class="{'wm-notif-dot--on':!n.is_read}"></span>
+                <div>
+                  <p class="wm-notif-msg">{{ n.message }}</p>
+                  <span class="wm-notif-time">{{ relTime(n.created_at) }}</span>
                 </div>
               </div>
             </div>
           </Transition>
         </div>
 
-        <!-- Cart -->
-        <router-link to="/cart" class="icon-btn cart-btn" v-if="auth.user">
-          <i class="fa-solid fa-cart-shopping"></i>
-          <span v-if="cartCount > 0" class="badge">{{ cartCount > 9 ? '9+' : cartCount }}</span>
+        <router-link to="/cart" class="wm-icon-btn" title="Cart">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span v-if="cartCount > 0" class="wm-badge">{{ cartCount > 9 ? '9+' : cartCount }}</span>
         </router-link>
 
-        <!-- User Menu -->
-        <div v-if="auth.user" class="user-wrapper" v-click-outside="closeMenu">
-          <div class="user-btn" @click.stop="toggleMenu">
-            <div class="avatar">{{ initials }}</div>
-            <span class="user-name">{{ firstName }}</span>
-            <i class="fa-solid fa-chevron-down chevron" :class="{ rotated: showMenu }"></i>
-          </div>
+        <div class="wm-user-btn" @click.stop="toggleMenu" v-click-outside="closeMenu">
+          <div class="wm-avatar">{{ initials }}</div>
+          <span class="wm-uname">{{ firstName }}</span>
+          <svg :class="['wm-chevron', showMenu && 'wm-chevron--open']" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
 
-          <Transition name="dropdown">
-            <div v-if="showMenu" class="dropdown user-dropdown" @click.stop>
-              <div class="dropdown-header">
-                <p class="dropdown-name">{{ auth.user.name }}</p>
-                <p class="dropdown-email">{{ auth.user.email }}</p>
+          <Transition name="wm-drop">
+            <div v-if="showMenu" class="wm-dropdown" @click.stop>
+              <div class="wm-dd-profile">
+                <div class="wm-dd-avatar">{{ initials }}</div>
+                <div>
+                  <p class="wm-dd-name">{{ auth.user.name }}</p>
+                  <p class="wm-dd-email">{{ auth.user.email }}</p>
+                </div>
               </div>
-              <div class="dropdown-divider"></div>
-              <router-link to="/profile" @click="showMenu = false">
-                <i class="fa-solid fa-user"></i> Profile
+              <div class="wm-dd-sep"></div>
+              <router-link class="wm-dd-item" to="/profile" @click="showMenu=false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profile
               </router-link>
-              <router-link to="/dashboard" @click="showMenu = false">
-                <i class="fa-solid fa-store"></i> My Shop
+              <router-link class="wm-dd-item" to="/dashboard" @click="showMenu=false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> My Shop
               </router-link>
-              <router-link to="/messages" @click="showMenu = false">
-                <i class="fa-solid fa-message"></i> Messages
-                <span v-if="unreadMsgCount > 0" class="menu-badge">{{ unreadMsgCount }}</span>
+              <router-link class="wm-dd-item" to="/messages" @click="showMenu=false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Messages
+                <span v-if="unreadMsgCount > 0" class="wm-dd-count">{{ unreadMsgCount }}</span>
               </router-link>
-              <router-link to="/add-product" @click="showMenu = false">
-                <i class="fa-solid fa-plus"></i> Sell Item
+              <router-link class="wm-dd-item" to="/add-product" @click="showMenu=false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Sell an Item
               </router-link>
-
-              <!-- Admin link if admin -->
-              <router-link to="/admin" @click="showMenu = false" v-if="isAdmin">
-                <i class="fa-solid fa-shield-halved"></i> Admin Panel
+              <router-link class="wm-dd-item" to="/admin" @click="showMenu=false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Panel
               </router-link>
-
-              <div class="dropdown-divider"></div>
-              <button @click="logout" class="logout-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
+              <div class="wm-dd-sep"></div>
+              <button class="wm-dd-item wm-dd-item--danger" @click="logout">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log out
               </button>
             </div>
           </Transition>
         </div>
-
-        <!-- Login -->
-        <router-link v-if="!auth.user" to="/auth" class="login-btn">Login</router-link>
-
       </div>
+
+      <router-link v-else to="/auth" class="wm-signin-btn" style="margin-left:auto">Sign in</router-link>
     </div>
   </nav>
 </template>
@@ -128,443 +100,126 @@ import api from '@/services/api'
 
 const auth = useAuthStore()
 const router = useRouter()
+const cartCount = ref(0), unreadMsgCount = ref(0), notifications = ref([])
+const showMenu = ref(false), showNotif = ref(false), loadingNotifs = ref(false)
+let pA = null, pB = null
 
-const cartCount = ref(0)
-const unreadMsgCount = ref(0)
-const notifications = ref([])
-const showMenu = ref(false)
-const showNotif = ref(false)
-const loadingNotifs = ref(false)
+const unreadNotifCount = computed(() => notifications.value.filter(n => !n.is_read).length)
+const initials = computed(() => !auth.user?.name ? '?' : auth.user.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase())
+const firstName = computed(() => auth.user?.name?.split(' ')[0] || 'User')
 
-let msgPollInterval = null
-let notifPollInterval = null
+const fetchCart = async () => { if (!auth.user) return; try { const r = await api.getCart(auth.user.user_id); cartCount.value = Array.isArray(r.data) ? r.data.length : 0 } catch {} }
+const fetchUnread = async () => { if (!auth.user) return; try { const r = await api.getUnreadCount(auth.user.user_id); unreadMsgCount.value = r.data?.count || 0 } catch {} }
+const fetchNotifs = async (loader = false) => { if (!auth.user) return; if (loader) loadingNotifs.value = true; try { const r = await api.getNotifications(auth.user.user_id); notifications.value = Array.isArray(r.data) ? r.data : [] } catch {} finally { loadingNotifs.value = false } }
+const markAllRead = async () => { try { await api.markNotificationsRead(auth.user.user_id); notifications.value = notifications.value.map(n => ({...n, is_read:1})) } catch {} }
 
-// ── Computed ──────────────────────────────────────────────
-
-const unreadNotifCount = computed(() =>
-  notifications.value.filter(n => !n.is_read).length
-)
-
-const initials = computed(() => {
-  if (!auth.user?.name) return '?'
-  return auth.user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
-})
-
-const firstName = computed(() => {
-  if (!auth.user?.name) return 'User'
-  return auth.user.name.split(' ')[0]
-})
-
-// Admin: user whose email is stored in localStorage with admin flag, or check email
-const isAdmin = computed(() => {
-  if (!auth.user) return false
-  // You can customize this — e.g. specific emails or a role field
-  return auth.user?.email?.endsWith('@adnu.edu.ph') || false
-})
-
-// ── Fetchers ──────────────────────────────────────────────
-
-const loadUser = () => {
-  const saved = localStorage.getItem('user')
-  if (saved) {
-    try { auth.user = JSON.parse(saved) } catch {}
-  }
-}
-
-const fetchCart = async () => {
-  if (!auth.user) return
-  try {
-    const res = await api.getCart(auth.user.user_id)
-    cartCount.value = Array.isArray(res.data) ? res.data.length : 0
-  } catch { /* silent */ }
-}
-
-const fetchUnreadMessages = async () => {
-  if (!auth.user) return
-  try {
-    const res = await api.getUnreadCount(auth.user.user_id)
-    unreadMsgCount.value = res.data?.count || 0
-  } catch { /* silent */ }
-}
-
-const fetchNotifications = async (showLoader = false) => {
-  if (!auth.user) return
-  if (showLoader) loadingNotifs.value = true
-  try {
-    const res = await api.getNotifications(auth.user.user_id)
-    notifications.value = Array.isArray(res.data) ? res.data : []
-  } catch { /* silent */ }
-  finally { loadingNotifs.value = false }
-}
-
-const markAllRead = async () => {
-  if (!auth.user) return
-  try {
-    await api.markNotificationsRead(auth.user.user_id)
-    notifications.value = notifications.value.map(n => ({ ...n, is_read: 1 }))
-  } catch { /* silent */ }
-}
-
-// ── UI Handlers ────────────────────────────────────────────
-
-const toggleMenu = () => {
-  showMenu.value = !showMenu.value
-  if (showMenu.value) showNotif.value = false
-}
+const toggleMenu = () => { showMenu.value = !showMenu.value; if (showMenu.value) showNotif.value = false }
 const closeMenu = () => { showMenu.value = false }
-
-const toggleNotif = () => {
-  showNotif.value = !showNotif.value
-  if (showNotif.value) {
-    showMenu.value = false
-    fetchNotifications(notifications.value.length === 0)
-  }
-}
+const toggleNotif = () => { showNotif.value = !showNotif.value; if (showNotif.value) { showMenu.value = false; fetchNotifs(!notifications.value.length) } }
 const closeNotif = () => { showNotif.value = false }
 
 const logout = () => {
-  if (msgPollInterval) clearInterval(msgPollInterval)
-  if (notifPollInterval) clearInterval(notifPollInterval)
-  localStorage.removeItem('user')
-  auth.user = null
-  cartCount.value = 0
-  unreadMsgCount.value = 0
-  notifications.value = []
-  showMenu.value = false
-  showNotif.value = false
+  clearInterval(pA); clearInterval(pB)
+  localStorage.removeItem('user'); auth.user = null
+  cartCount.value = 0; unreadMsgCount.value = 0; notifications.value = []
+  showMenu.value = false; showNotif.value = false
   router.push('/auth')
 }
 
-const formatTime = (d) => {
+const relTime = (d) => {
   if (!d) return ''
-  const date = new Date(d)
-  const now = new Date()
-  const diff = now - date
+  const diff = Date.now() - new Date(d)
   if (diff < 60000) return 'just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`
+  if (diff < 86400000) return new Date(d).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+  return new Date(d).toLocaleDateString('en-PH', {month:'short',day:'numeric'})
 }
-
-// ── Click Outside Directive ────────────────────────────────
 
 const vClickOutside = {
-  mounted(el, binding) {
-    el._clickOutside = (e) => { if (!el.contains(e.target)) binding.value(e) }
-    document.addEventListener('click', el._clickOutside)
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el._clickOutside)
-  }
+  mounted(el, b) { el._co = e => { if (!el.contains(e.target)) b.value(e) }; document.addEventListener('click', el._co) },
+  unmounted(el) { document.removeEventListener('click', el._co) }
 }
 
-// ── Lifecycle ──────────────────────────────────────────────
-
 onMounted(async () => {
-  loadUser()
+  const s = localStorage.getItem('user'); if (s) try { auth.user = JSON.parse(s) } catch {}
   if (auth.user) {
-    await Promise.all([fetchCart(), fetchUnreadMessages(), fetchNotifications()])
-
-    // Poll messages every 8s
-    msgPollInterval = setInterval(() => {
-      fetchUnreadMessages()
-      fetchCart()
-    }, 8000)
-
-    // Poll notifications every 15s
-    notifPollInterval = setInterval(() => {
-      fetchNotifications()
-    }, 15000)
+    await Promise.all([fetchCart(), fetchUnread(), fetchNotifs()])
+    pA = setInterval(() => { fetchCart(); fetchUnread() }, 8000)
+    pB = setInterval(() => fetchNotifs(), 15000)
   }
 })
-
-onUnmounted(() => {
-  if (msgPollInterval) clearInterval(msgPollInterval)
-  if (notifPollInterval) clearInterval(notifPollInterval)
-})
+onUnmounted(() => { clearInterval(pA); clearInterval(pB) })
 </script>
 
 <style scoped>
-.navbar {
-  background: #003366;
-  color: white;
-  padding: 0 24px;
-  height: 60px;
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.18);
-}
+.wm-nav { background:#fff; border-bottom:1px solid #e8edf2; height:60px; position:sticky; top:0; z-index:999; }
+.wm-nav__inner { max-width:1200px; margin:0 auto; height:100%; padding:0 24px; display:flex; align-items:center; gap:28px; }
 
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.wm-brand { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; }
+.wm-brand__mark { width:34px; height:34px; background:#003366; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#FFD700; font-size:17px; font-weight:900; font-family:Georgia,serif; letter-spacing:-1px; flex-shrink:0; }
+.wm-brand__text { font-size:1.05rem; font-weight:800; color:#003366; letter-spacing:-0.5px; }
+.wm-brand__gold { color:#B8960C; }
 
-.brand {
-  font-weight: 800;
-  font-size: 1.15rem;
-  color: white;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
+.wm-nav__links { display:flex; gap:2px; flex:1; }
+.wm-nav__link { font-size:0.875rem; font-weight:500; color:#666; text-decoration:none; padding:6px 12px; border-radius:7px; transition:0.15s; }
+.wm-nav__link:hover { color:#003366; background:#f0f5ff; }
+.wm-nav__link.router-link-active { color:#003366; font-weight:700; background:#eef3ff; }
 
-.highlight { color: #FFD700; }
+.wm-nav__actions { display:flex; align-items:center; gap:2px; margin-left:auto; }
 
-.links { display: flex; align-items: center; gap: 6px; }
+.wm-icon-btn { position:relative; width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#666; cursor:pointer; transition:0.15s; text-decoration:none; border:none; background:none; }
+.wm-icon-btn:hover { color:#003366; background:#f0f5ff; }
+.wm-icon-btn.router-link-active { color:#003366; background:#eef3ff; }
 
-.nav-item {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  padding: 6px 12px;
-  border-radius: 7px;
-  transition: 0.2s;
-  font-weight: 500;
-}
+.wm-badge { position:absolute; top:2px; right:2px; background:#003366; color:#FFD700; font-size:9px; font-weight:800; min-width:15px; height:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 3px; pointer-events:none; border:1.5px solid white; }
 
-.nav-item:hover,
-.nav-item.router-link-active {
-  color: white;
-  background: rgba(255,255,255,0.12);
-}
+.wm-notif-wrap { position:relative; }
 
-.icon-btn {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: rgba(255,255,255,0.85);
-  cursor: pointer;
-  transition: 0.2s;
-  text-decoration: none;
-}
+.wm-user-btn { display:flex; align-items:center; gap:7px; cursor:pointer; padding:5px 10px 5px 5px; border-radius:9px; transition:0.15s; position:relative; border:1px solid transparent; margin-left:6px; }
+.wm-user-btn:hover { background:#f0f5ff; border-color:#dde8f8; }
+.wm-avatar { width:28px; height:28px; background:#003366; color:#FFD700; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; flex-shrink:0; }
+.wm-uname { font-size:0.875rem; font-weight:600; color:#1a1a2e; }
+.wm-chevron { color:#aaa; transition:transform 0.2s; flex-shrink:0; }
+.wm-chevron--open { transform:rotate(180deg); }
 
-.icon-btn:hover { background: rgba(255,255,255,0.12); color: white; }
-.icon-btn.router-link-active { color: #FFD700; background: rgba(255,255,255,0.1); }
+.wm-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:#fff; border:1px solid #e4eaf2; border-radius:14px; box-shadow:0 12px 40px rgba(0,51,102,0.12); z-index:1000; overflow:hidden; min-width:220px; }
+.wm-dropdown--wide { min-width:320px; max-height:420px; overflow-y:auto; }
+.wm-drop-enter-active,.wm-drop-leave-active { transition:all 0.15s ease; }
+.wm-drop-enter-from,.wm-drop-leave-to { opacity:0; transform:translateY(-6px) scale(0.98); }
 
-.badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #FFD700;
-  color: #003366;
-  font-size: 9px;
-  font-weight: 900;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  pointer-events: none;
-}
+.wm-dd-head { display:flex; justify-content:space-between; align-items:center; padding:12px 16px 10px; border-bottom:1px solid #f0f0f0; font-size:0.875rem; font-weight:700; color:#003366; position:sticky; top:0; background:#fff; }
+.wm-dd-link { background:none; border:none; color:#003366; font-size:0.72rem; font-weight:600; cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:2px; font-family:inherit; }
+.wm-dd-empty { padding:24px; text-align:center; color:#bbb; font-size:0.85rem; margin:0; }
+.wm-dd-sep { height:1px; background:#f0f0f0; }
 
-/* Notification wrap */
-.notif-wrap { position: relative; }
+.wm-dd-profile { display:flex; align-items:center; gap:12px; padding:14px 16px; background:#f8faff; border-bottom:1px solid #f0f0f0; }
+.wm-dd-avatar { width:38px; height:38px; border-radius:50%; background:#003366; color:#FFD700; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; flex-shrink:0; }
+.wm-dd-name { font-size:0.875rem; font-weight:700; color:#003366; margin:0 0 2px; }
+.wm-dd-email { font-size:0.72rem; color:#888; margin:0; }
 
-/* User */
-.user-wrapper { position: relative; }
+.wm-dd-item { display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:0.875rem; color:#444; text-decoration:none; background:none; border:none; width:100%; text-align:left; cursor:pointer; transition:0.12s; font-family:inherit; }
+.wm-dd-item:hover { background:#f0f5ff; color:#003366; }
+.wm-dd-item svg { flex-shrink:0; color:#aaa; }
+.wm-dd-item:hover svg { color:#003366; }
+.wm-dd-item--danger { color:#c0392b; }
+.wm-dd-item--danger svg { color:#c0392b; }
+.wm-dd-item--danger:hover { background:#fff5f5; color:#c0392b; }
+.wm-dd-count { margin-left:auto; background:#003366; color:#FFD700; font-size:10px; font-weight:800; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
 
-.user-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 8px;
-  transition: 0.2s;
-  user-select: none;
-}
+.wm-notif-item { display:flex; align-items:flex-start; gap:10px; padding:10px 16px; border-bottom:1px solid #f5f5f5; transition:background 0.12s; cursor:default; }
+.wm-notif-item:last-child { border-bottom:none; }
+.wm-notif-item:hover { background:#f8faff; }
+.wm-notif-item--unread { background:#f0f5ff; }
+.wm-notif-dot { display:block; width:7px; height:7px; border-radius:50%; background:#ddd; flex-shrink:0; margin-top:6px; }
+.wm-notif-dot--on { background:#003366; }
+.wm-notif-msg { font-size:0.82rem; color:#333; margin:0 0 3px; line-height:1.4; }
+.wm-notif-time { font-size:0.7rem; color:#aaa; }
 
-.user-btn:hover { background: rgba(255,255,255,0.12); }
+.wm-signin-btn { background:#003366; color:#fff; padding:8px 20px; border-radius:8px; font-weight:700; font-size:0.875rem; text-decoration:none; transition:0.15s; letter-spacing:0.1px; }
+.wm-signin-btn:hover { background:#002244; }
 
-.avatar {
-  width: 30px;
-  height: 30px;
-  background: #FFD700;
-  color: #003366;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 900;
-  flex-shrink: 0;
-}
+.wm-skel { background:linear-gradient(110deg,#f0f0f0 8%,#f8f8f8 18%,#f0f0f0 33%); background-size:200% 100%; animation:sk 1.5s linear infinite; }
+@keyframes sk { to { background-position-x:-200%; } }
 
-.user-name { font-size: 0.875rem; font-weight: 600; color: white; }
-.chevron { font-size: 10px; color: rgba(255,255,255,0.7); transition: transform 0.2s; }
-.chevron.rotated { transform: rotate(180deg); }
-
-/* Dropdown */
-.dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  background: white;
-  color: #333;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
-  min-width: 210px;
-  overflow: hidden;
-  z-index: 1000;
-  border: 0.5px solid #e5e7eb;
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active { transition: all 0.18s ease; }
-.dropdown-enter-from,
-.dropdown-leave-to { opacity: 0; transform: translateY(-6px); }
-
-.dropdown-header { padding: 12px 16px; background: #f8fafc; }
-.dropdown-name { font-weight: 800; font-size: 0.875rem; color: #003366; margin: 0 0 2px; }
-.dropdown-email { font-size: 0.72rem; color: #888; margin: 0; }
-.dropdown-divider { height: 1px; background: #eee; }
-
-.dropdown a,
-.dropdown button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  font-size: 0.875rem;
-  color: #333;
-  text-decoration: none;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition: 0.15s;
-  font-family: inherit;
-}
-
-.dropdown a:hover, .dropdown button:hover { background: #f0f4ff; color: #003366; }
-.dropdown i { width: 14px; color: #888; }
-
-.menu-badge {
-  margin-left: auto;
-  background: #003366;
-  color: white;
-  font-size: 10px;
-  font-weight: 800;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-}
-
-.logout-btn { color: #e74c3c !important; }
-.logout-btn i { color: #e74c3c !important; }
-.logout-btn:hover { background: #fff5f5 !important; }
-
-/* Notif Dropdown */
-.notif-dropdown {
-  min-width: 320px;
-  max-height: 420px;
-  overflow-y: auto;
-}
-
-.dropdown-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid #eee;
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 1;
-}
-
-.dropdown-title { font-weight: 800; font-size: 0.875rem; color: #003366; margin: 0; }
-
-.mark-read-btn {
-  background: none !important;
-  border: none !important;
-  color: #003366 !important;
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
-  padding: 0 !important;
-  width: auto !important;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.mark-read-btn:hover { opacity: 0.7; background: none !important; }
-
-.notif-loading { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.notif-skeleton {
-  height: 52px;
-  border-radius: 8px;
-  background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-}
-
-@keyframes shimmer { to { background-position-x: -200%; } }
-
-.notif-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #f5f5f5;
-  transition: background 0.15s;
-  cursor: default;
-}
-
-.notif-item:last-child { border-bottom: none; }
-.notif-item.unread { background: #f0f4ff; }
-.notif-item:hover { background: #e8f0fe; }
-
-.notif-dot-wrap { padding-top: 5px; flex-shrink: 0; }
-.notif-dot {
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.notif-dot.unread { background: #003366; }
-.notif-dot.read { background: #ddd; }
-
-.notif-text p { font-size: 0.82rem; color: #333; margin: 0 0 3px; line-height: 1.4; }
-.notif-text span { font-size: 0.7rem; color: #aaa; }
-
-.empty-notif { padding: 24px 16px; text-align: center; color: #bbb; font-size: 0.85rem; margin: 0; }
-
-/* Login */
-.login-btn {
-  background: #FFD700;
-  color: #003366;
-  padding: 7px 18px;
-  border-radius: 8px;
-  font-weight: 800;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.login-btn:hover { background: #e6c200; }
-
-@media (max-width: 640px) {
-  .user-name { display: none; }
-  .nav-item { padding: 6px 8px; font-size: 0.82rem; }
-}
+@media(max-width:640px) { .wm-uname,.wm-nav__links { display:none; } .wm-nav__inner { gap:10px; } }
 </style>

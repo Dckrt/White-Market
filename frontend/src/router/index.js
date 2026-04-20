@@ -13,34 +13,27 @@ import AdminView     from '@/views/AdminView.vue'
 
 const routes = [
   { path: '/auth',             name: 'Auth',           component: AuthPage },
-  { path: '/',                 name: 'Home',            component: HomeView },
-  { path: '/products',         name: 'Products',        component: Marketplace },
-  { path: '/products/:id',     name: 'ProductDetails',  component: ProductDetails, props: true },
-  { path: '/product-view/:id', name: 'ProductView',     component: ProductView },
-  { path: '/cart',             name: 'Cart',            component: CartView },
-  { path: '/profile',          name: 'Profile',         component: Profile },
-  { path: '/dashboard',        name: 'Dashboard',       component: Dashboard },
-  { path: '/add-product',      name: 'AddProduct',      component: AddProduct },
-  { path: '/messages',         name: 'Messages',        component: MessagesPage },
+  { path: '/',                 name: 'Home',           component: HomeView },
+  { path: '/products',         name: 'Products',       component: Marketplace },
+  { path: '/products/:id',     name: 'ProductDetails', component: ProductDetails, props: true },
+  { path: '/product-view/:id', name: 'ProductView',    component: ProductView },
+  { path: '/cart',             name: 'Cart',           component: CartView },
+  { path: '/profile',          name: 'Profile',        component: Profile },
+  { path: '/dashboard',        name: 'Dashboard',      component: Dashboard },
+  { path: '/add-product',      name: 'AddProduct',     component: AddProduct },
+  { path: '/messages',         name: 'Messages',       component: MessagesPage },
   { path: '/chat',             redirect: '/messages' },
-  { path: '/admin',            name: 'Admin',           component: AdminView },
+  { path: '/admin',            name: 'Admin',          component: AdminView },
   { path: '/:pathMatch(.*)*',  redirect: '/' }
 ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+const router = createRouter({ history: createWebHistory(), routes })
 
-// Navigation guard — protect dashboard/profile/cart if not logged in
 router.beforeEach((to, from, next) => {
   const protectedRoutes = ['Dashboard', 'Cart', 'Profile', 'AddProduct', 'Messages']
   const user = localStorage.getItem('user')
-  if (protectedRoutes.includes(to.name) && !user) {
-    next('/auth')
-  } else {
-    next()
-  }
+  if (protectedRoutes.includes(to.name) && !user) next('/auth')
+  else next()
 })
 
 export default router
