@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADNU Market — Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0d0f14;--surface:#13161d;--surface2:#1a1e28;--surface3:#222636;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--accent:#6c63ff;--accent2:#4ecca3;--danger:#ff5e6c;--warn:#ffb547;--text:#e8eaf0;--muted:#7a7f96;--muted2:#555a72;--radius:10px;--font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);background-image:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(108,99,255,0.12) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 80% 80%,rgba(78,204,163,0.08) 0%,transparent 70%)}
+    .login-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:2.5rem 2.25rem;width:100%;max-width:380px;text-align:center}
+    .login-logo{width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 1.25rem}
+    .login-box h2{font-size:20px;font-weight:600;color:var(--text);margin-bottom:4px}
+    .login-box>p{color:var(--muted);font-size:13px;margin-bottom:1.75rem}
+    .login-box input[type=password]{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:14px;outline:none;margin-bottom:12px;transition:border-color .2s;letter-spacing:2px}
+    .login-box input[type=password]:focus{border-color:var(--accent)}
+    .login-box button{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:11px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .2s,transform .1s}
+    .login-box button:hover{opacity:.9}.login-box button:active{transform:scale(.98)}
+    .error-msg{color:var(--danger);font-size:12.5px;margin-top:10px;min-height:18px}
+    .admin-header{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;padding:0 20px;height:56px;background:rgba(13,15,20,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+    .admin-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;color:var(--text);white-space:nowrap;margin-right:8px}
+    .admin-brand strong{color:var(--accent);font-weight:600}
+    .admin-nav{display:flex;gap:4px;flex:1}
+    .nav-tab{display:flex;align-items:center;gap:6px;padding:6px 14px;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--muted);font-family:var(--font);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .nav-tab i{font-size:12px}.nav-tab:hover{color:var(--text);background:var(--surface2)}
+    .nav-tab.active{color:var(--accent);background:rgba(108,99,255,0.12);border-color:rgba(108,99,255,0.25)}
+    .logout-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,94,108,0.1);border:1px solid rgba(255,94,108,0.2);border-radius:8px;color:var(--danger);font-family:var(--font);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .logout-btn:hover{background:rgba(255,94,108,0.18);border-color:rgba(255,94,108,0.35)}
+    .tab-content{max-width:1280px;margin:0 auto;padding:28px 24px 48px}
+    .tab-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s}
+    .stat-card:hover{border-color:var(--border2)}
+    .stat-card i{font-size:16px;color:var(--accent);width:32px;height:32px;background:rgba(108,99,255,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center}
+    .stat-num{font-size:28px;font-weight:600;color:var(--text);line-height:1}
+    .stat-label{font-size:12px;color:var(--muted)}
+    .section-label{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+    .recent-list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .recent-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+    .recent-item:last-child{border-bottom:none}.recent-item:hover{background:var(--surface2)}
+    .recent-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;background:var(--surface3);flex-shrink:0}
+    .recent-info{flex:1;min-width:0}
+    .recent-title{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .recent-meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .recent-price{font-size:13px;font-weight:600;color:var(--accent2);white-space:nowrap}
+    .tab-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+    .tab-header>div{display:flex;align-items:baseline;gap:10px}
+    .tab-header .tab-title{margin-bottom:0}
+    .count-badge{font-size:12px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:20px}
+    .search-input{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;width:280px;transition:border-color .2s}
+    .search-input::placeholder{color:var(--muted2)}.search-input:focus{border-color:var(--accent)}
+    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;overflow-x:auto}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:var(--surface2);border-bottom:1px solid var(--border2)}
+    th{padding:11px 14px;text-align:left;font-size:11.5px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+    td{padding:11px 14px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle}
+    tr:last-child td{border-bottom:none}tbody tr:hover{background:var(--surface2)}
+    .td-title{font-weight:500;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .td-email{color:var(--muted);font-size:12.5px}
+    .td-msg{max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12.5px}
+    .thumb-img{width:36px;height:36px;border-radius:6px;object-fit:cover;background:var(--surface3);display:block}
+    .cat-tag{display:inline-block;padding:2px 8px;background:rgba(108,99,255,0.1);color:#a89fff;border-radius:4px;font-size:11.5px;font-weight:500}
+    .status-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:500}
+    .status-available{background:rgba(78,204,163,0.12);color:#4ecca3}
+    .status-sold{background:rgba(255,94,108,0.1);color:#ff8a94}
+    .read-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:500}
+    .read-yes{background:rgba(78,204,163,0.1);color:#4ecca3}
+    .read-no{background:rgba(255,181,71,0.1);color:var(--warn)}
+    .del-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:transparent;border:1px solid rgba(255,94,108,0.2);border-radius:6px;color:var(--danger);font-family:var(--font);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .del-btn:hover{background:rgba(255,94,108,0.1);border-color:rgba(255,94,108,0.4)}
+    .empty-row td,.loading-row td{text-align:center;padding:36px;color:var(--muted);font-size:13px}
+    .toast{position:fixed;bottom:24px;right:24px;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;background:var(--surface2);border:1px solid var(--border2);color:var(--text);z-index:9999;animation:slideUp .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .toast.success{border-color:rgba(78,204,163,0.4);color:var(--accent2)}.toast.error{border-color:rgba(255,94,108,0.4);color:var(--danger)}
+    @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+    @media(max-width:640px){.search-input{width:100%}.tab-header{flex-direction:column;align-items:flex-start}.stats-grid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+  <div id="login-screen">
+    <div class="login-box">
+      <div class="login-logo">🛍️</div>
+      <h2>ADNU Market</h2>
+      <p>Admin Dashboard — Staff Only</p>
+      <input id="admin-password" type="password" placeholder="Enter admin password" autocomplete="current-password" />
+      <button onclick="adminLogin()">Access Dashboard</button>
+      <p id="login-error" class="error-msg"></p>
+    </div>
+  </div>
+  <div id="dashboard" style="display:none">
+    <header class="admin-header">
+      <div class="admin-brand"><span>🛍️</span><span>ADNU Market <strong>Admin</strong></span></div>
+      <nav class="admin-nav">
+        <button class="nav-tab active" onclick="showTab('overview')"><i class="fa-solid fa-chart-pie"></i> Overview</button>
+        <button class="nav-tab" onclick="showTab('products')"><i class="fa-solid fa-box"></i> Products</button>
+        <button class="nav-tab" onclick="showTab('users')"><i class="fa-solid fa-users"></i> Users</button>
+        <button class="nav-tab" onclick="showTab('messages')"><i class="fa-solid fa-message"></i> Messages</button>
+      </nav>
+      <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </header>
+    <div id="tab-overview" class="tab-content">
+      <h2 class="tab-title">Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><i class="fa-solid fa-users"></i><span class="stat-num" id="stat-users">—</span><span class="stat-label">Registered Users</span></div>
+        <div class="stat-card"><i class="fa-solid fa-box"></i><span class="stat-num" id="stat-products">—</span><span class="stat-label">Total Listings</span></div>
+        <div class="stat-card"><i class="fa-solid fa-message"></i><span class="stat-num" id="stat-messages">—</span><span class="stat-label">Messages Sent</span></div>
+        <div class="stat-card"><i class="fa-solid fa-cart-shopping"></i><span class="stat-num" id="stat-cart">—</span><span class="stat-label">Cart Items</span></div>
+      </div>
+      <h3 class="section-label">Recent Listings</h3>
+      <div id="recent-products" class="recent-list"></div>
+    </div>
+    <div id="tab-products" class="tab-content" style="display:none">
+      <div class="tab-header"><div><h2 class="tab-title">All Listings</h2><span class="count-badge" id="product-count"></span></div><input id="product-search" class="search-input" placeholder="Search title, seller, category..." oninput="filterProducts()"/></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Image</th><th>Title</th><th>Category</th><th>Price</th><th>Status</th><th>Seller</th><th>Posted</th><th>Action</th></tr></thead><tbody id="products-tbody"><tr class="loading-row"><td colspan="9">Loading...</td></tr></tbody></table></div>
+    </div>
+    <div id="tab-users" class="tab-content" style="display:none">
+      <div class="tab-header"><div><h2 class="tab-title">All Users</h2><span class="count-badge" id="user-count"></span></div><input id="user-search" class="search-input" placeholder="Search name, email, student ID..." oninput="filterUsers()"/></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Student ID</th><th>Course</th><th>Year</th><th>Action</th></tr></thead><tbody id="users-tbody"><tr class="loading-row"><td colspan="7">Loading...</td></tr></tbody></table></div>
+    </div>
+    <div id="tab-messages" class="tab-content" style="display:none">
+      <div class="tab-header"><div><h2 class="tab-title">All Messages</h2><span class="count-badge" id="msg-count"></span></div><input id="msg-search" class="search-input" placeholder="Search sender, receiver, message..." oninput="filterMessages()"/></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>From</th><th>To</th><th>Message</th><th>Sent</th><th>Status</th></tr></thead><tbody id="messages-tbody"><tr class="loading-row"><td colspan="6">Loading...</td></tr></tbody></table></div>
+    </div>
+  </div>
+<script>
+const BASE='http://127.0.0.1:5000/api'
+const FALLBACK_PW='adnu_admin_2024'
+let allProducts=[],allUsers=[],allMessages=[]
+
+async function adminLogin(){
+  const pw=document.getElementById('admin-password').value.trim()
+  const err=document.getElementById('login-error')
+  err.textContent=''
+  if(!pw){err.textContent='Please enter the admin password.';return}
+  try{
+    const res=await fetch(`${BASE}/admin/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})})
+    const data=await res.json()
+    if(res.ok&&data.success){grantAccess();return}
+    err.textContent=data.message||'Wrong password.'
+  }catch(e){
+    if(pw===FALLBACK_PW){grantAccess();toast('Offline mode','success')}
+    else err.textContent='Cannot reach backend. Is Flask running on port 5000?'
+  }
+}
+function grantAccess(){sessionStorage.setItem('admin_auth','1');document.getElementById('login-screen').style.display='none';document.getElementById('dashboard').style.display='block';loadOverview()}
+function logout(){sessionStorage.removeItem('admin_auth');document.getElementById('dashboard').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('admin-password').value='';document.getElementById('login-error').textContent=''}
+document.getElementById('admin-password').addEventListener('keyup',e=>{if(e.key==='Enter')adminLogin()})
+if(sessionStorage.getItem('admin_auth')){document.getElementById('login-screen').style.display='none';document.getElementById('dashboard').style.display='block';loadOverview()}
+function showTab(name){document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));document.getElementById(`tab-${name}`).style.display='block';document.querySelectorAll('.nav-tab').forEach(el=>{if(el.getAttribute('onclick')?.includes(name))el.classList.add('active')});if(name==='products')loadProducts();if(name==='users')loadUsers();if(name==='messages')loadMessages()}
+async function loadOverview(){
+  try{const res=await fetch(`${BASE}/admin/stats`);const d=await res.json();document.getElementById('stat-users').textContent=d.users??'—';document.getElementById('stat-products').textContent=d.products??'—';document.getElementById('stat-messages').textContent=d.messages??'—';document.getElementById('stat-cart').textContent=d.cart_items??'—'}catch(e){}
+  try{const res=await fetch(`${BASE}/admin/products`);const products=await res.json();const c=document.getElementById('recent-products');if(!products.length){c.innerHTML='<p style="padding:1.5rem;color:var(--muted);text-align:center">No listings yet</p>';return}c.innerHTML=products.slice(0,8).map(p=>`<div class="recent-item"><img class="recent-thumb" src="${p.image_url||''}" alt="" onerror="this.style.opacity='.2'"/><div class="recent-info"><div class="recent-title">${escHtml(p.title)}</div><div class="recent-meta">${escHtml(p.category)} · ${escHtml(p.seller_name||'—')} · ${formatDate(p.created_at)}</div></div><span class="recent-price">₱${Number(p.price).toLocaleString('en-PH',{minimumFractionDigits:2})}</span></div>`).join('')}catch(e){}
+}
+async function loadProducts(){const t=document.getElementById('products-tbody');t.innerHTML='<tr class="loading-row"><td colspan="9">Loading...</td></tr>';try{allProducts=await(await fetch(`${BASE}/admin/products`)).json();document.getElementById('product-count').textContent=`${allProducts.length} items`;renderProducts(allProducts)}catch(e){t.innerHTML='<tr class="empty-row"><td colspan="9">Failed to load</td></tr>'}}
+function renderProducts(list){const t=document.getElementById('products-tbody');if(!list.length){t.innerHTML='<tr class="empty-row"><td colspan="9">No products found</td></tr>';return}t.innerHTML=list.map(p=>`<tr><td style="color:var(--muted);font-size:12px">${p.id}</td><td>${p.image_url?`<img class="thumb-img" src="${p.image_url}" alt="" onerror="this.style.opacity='.2'"/>`:`<div class="thumb-img" style="background:var(--surface3)"></div>`}</td><td class="td-title">${escHtml(p.title)}</td><td><span class="cat-tag">${escHtml(p.category)}</span></td><td style="white-space:nowrap">₱${Number(p.price).toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td><span class="status-tag status-${(p.status||'').toLowerCase()}">${escHtml(p.status)}</span></td><td style="color:var(--muted)">${escHtml(p.seller_name||'—')}</td><td style="color:var(--muted);white-space:nowrap">${formatDate(p.created_at)}</td><td><button class="del-btn" onclick="deleteProduct(${p.id},'${escAttr(p.title)}')"><i class="fa-solid fa-trash"></i> Delete</button></td></tr>`).join('')}
+function filterProducts(){const q=document.getElementById('product-search').value.toLowerCase();renderProducts(allProducts.filter(p=>(p.title||'').toLowerCase().includes(q)||(p.seller_name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q)))}
+async function deleteProduct(id,title){if(!confirm(`Delete "${title}"?\n\nThis cannot be undone.`))return;try{const res=await fetch(`${BASE}/admin/products/${id}`,{method:'DELETE'});if(res.ok){allProducts=allProducts.filter(p=>p.id!==id);renderProducts(allProducts);document.getElementById('product-count').textContent=`${allProducts.length} items`;toast('Product deleted','success')}else toast('Failed to delete','error')}catch(e){toast('Connection error','error')}}
+async function loadUsers(){const t=document.getElementById('users-tbody');t.innerHTML='<tr class="loading-row"><td colspan="7">Loading...</td></tr>';try{allUsers=await(await fetch(`${BASE}/admin/users`)).json();document.getElementById('user-count').textContent=`${allUsers.length} users`;renderUsers(allUsers)}catch(e){t.innerHTML='<tr class="empty-row"><td colspan="7">Failed to load</td></tr>'}}
+function renderUsers(list){const t=document.getElementById('users-tbody');if(!list.length){t.innerHTML='<tr class="empty-row"><td colspan="7">No users found</td></tr>';return}t.innerHTML=list.map(u=>`<tr><td style="color:var(--muted);font-size:12px">${u.id}</td><td class="td-title">${escHtml(u.name)}</td><td class="td-email">${escHtml(u.email)}</td><td style="font-family:var(--mono);font-size:12px">${escHtml(u.student_id||'—')}</td><td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)">${escHtml(u.course||'—')}</td><td style="color:var(--muted)">${escHtml(u.year_level?`Year ${u.year_level}`:'—')}</td><td><button class="del-btn" onclick="deleteUser(${u.id},'${escAttr(u.name)}')"><i class="fa-solid fa-trash"></i> Delete</button></td></tr>`).join('')}
+function filterUsers(){const q=document.getElementById('user-search').value.toLowerCase();renderUsers(allUsers.filter(u=>(u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)||(u.student_id||'').toLowerCase().includes(q)))}
+async function deleteUser(id,name){if(!confirm(`Delete user "${name}"?\n\nThis removes their products, cart, and messages. Cannot be undone.`))return;try{const res=await fetch(`${BASE}/admin/users/${id}`,{method:'DELETE'});if(res.ok){allUsers=allUsers.filter(u=>u.id!==id);renderUsers(allUsers);document.getElementById('user-count').textContent=`${allUsers.length} users`;toast('User deleted','success')}else toast('Failed to delete','error')}catch(e){toast('Connection error','error')}}
+async function loadMessages(){const t=document.getElementById('messages-tbody');t.innerHTML='<tr class="loading-row"><td colspan="6">Loading...</td></tr>';try{allMessages=await(await fetch(`${BASE}/admin/messages`)).json();document.getElementById('msg-count').textContent=`${allMessages.length} messages`;renderMessages(allMessages)}catch(e){t.innerHTML='<tr class="empty-row"><td colspan="6">Failed to load</td></tr>'}}
+function renderMessages(list){const t=document.getElementById('messages-tbody');if(!list.length){t.innerHTML='<tr class="empty-row"><td colspan="6">No messages found</td></tr>';return}t.innerHTML=list.map(m=>`<tr><td style="color:var(--muted);font-size:12px">${m.id}</td><td style="font-weight:500">${escHtml(m.sender_name||m.sender_id)}</td><td style="color:var(--muted)">${escHtml(m.receiver_name||m.receiver_id)}</td><td class="td-msg" title="${escAttr(m.message)}">${escHtml(m.message)}</td><td style="color:var(--muted);white-space:nowrap;font-size:12.5px">${formatDate(m.sent_at)}</td><td><span class="read-tag ${m.is_read?'read-yes':'read-no'}">${m.is_read?'Read':'Unread'}</span></td></tr>`).join('')}
+function filterMessages(){const q=document.getElementById('msg-search').value.toLowerCase();renderMessages(allMessages.filter(m=>(m.message||'').toLowerCase().includes(q)||(m.sender_name||'').toLowerCase().includes(q)||(m.receiver_name||'').toLowerCase().includes(q)))}
+function formatDate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}catch{return d}}
+function escHtml(str){if(str==null)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escAttr(str){if(str==null)return'';return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+function toast(msg,type=''){const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
+</script>
+</body>
+</html>
