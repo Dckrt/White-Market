@@ -394,7 +394,29 @@ def checkout():
 
 
 # ── MESSAGES ──────────────────────────────────────────────────────────────────
+# ADD THIS ROUTE to your backend/app.py
+# Paste it after the existing /api/messages routes
 
+@app.route("/api/messages/mark-read", methods=["POST"])
+def mark_messages_read():
+    """Mark all messages from a sender to a reader as read."""
+    data = request.get_json()
+    reader_id = data.get("reader_id")
+    sender_id = data.get("sender_id")
+    if not reader_id or not sender_id:
+        return jsonify({"message": "reader_id and sender_id required"}), 400
+    try:
+        db.session.execute(db.text("""
+            UPDATE MESSAGES SET is_read = 1
+            WHERE receiver_id = :reader AND sender_id = :sender AND is_read = 0
+        """), {"reader": int(reader_id), "sender": int(sender_id)})
+        db.session.commit()
+        return jsonify({"message": "Messages marked as read"})
+    except Exception as e:
+        db.session.rollback()
+        print("MARK READ ERROR:", e)
+        return jsonify({"message": "Server error"}), 500
+    
 @app.route("/api/messages", methods=["POST"])
 def send_message():
     data         = request.get_json()

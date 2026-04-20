@@ -1,9 +1,7 @@
 <template>
-  <div id="white-market-app">
+  <div id="wm-app">
     <Navbar v-if="showNavbar" />
-    <main class="app-content">
-      <router-view />
-    </main>
+    <router-view />
   </div>
 </template>
 
@@ -13,36 +11,12 @@ import { useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 
 const route = useRoute()
-
-// Hide navbar on auth page and admin page (admin has its own header)
-const showNavbar = computed(() =>
-  route.path !== '/auth' && route.path !== '/admin'
-)
+// Admin has its own sidebar header; Auth has its own full-page layout
+const showNavbar = computed(() => route.path !== '/auth' && route.path !== '/admin')
 </script>
 
 <style>
-:root {
-  --ateneo-blue: #003366;
-  --ateneo-gold: #FFD700;
-  --bg-soft: #f8fafc;
-}
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
-  background: var(--bg-soft);
-}
-
-#white-market-app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.app-content {
-  flex: 1;
-}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif; background: #f4f7fb; -webkit-font-smoothing: antialiased; }
+#wm-app { display: flex; flex-direction: column; min-height: 100vh; }
 </style>
