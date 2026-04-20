@@ -6,7 +6,7 @@
       <div class="left-content">
         <div class="brand">
           <span class="brand-icon">🛍️</span>
-          <span class="brand-name">ADNU <strong>Market</strong></span>
+          <span class="brand-name">White <strong>Market</strong></span>
         </div>
         <h1 class="tagline">Buy & sell within<br/>the Golden Knights community.</h1>
         <p class="sub-tagline">The official peer-to-peer marketplace for Ateneo de Naga University students.</p>
@@ -27,19 +27,7 @@
     <div class="right-panel">
       <div class="form-card">
 
-        <!-- DEV QUICK LOGIN (only visible in development) -->
-        <div class="dev-panel" v-if="isDev">
-          <p class="dev-label">⚡ Dev Quick Login</p>
-          <div class="dev-btns">
-            <button class="dev-btn seller" @click="quickLogin('seller')" type="button">
-              Login as Seller
-            </button>
-            <button class="dev-btn buyer" @click="quickLogin('buyer')" type="button">
-              Login as Buyer
-            </button>
-          </div>
-        </div>
-
+        
         <!-- Tabs -->
         <div class="tabs">
           <button class="tab" :class="{ active: isLogin }" @click="isLogin = true">Login</button>

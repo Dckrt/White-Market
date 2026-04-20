@@ -5,7 +5,7 @@
       <!-- Logo -->
       <router-link to="/" class="brand">
         <span class="logo">🛍️</span>
-        ADNU <span class="highlight">Market</span>
+        White <span class="highlight">Market</span>
       </router-link>
 
       <!-- Links -->
