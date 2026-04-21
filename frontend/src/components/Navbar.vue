@@ -3,8 +3,8 @@
     <div class="wm-nav__inner">
 
       <router-link to="/" class="wm-brand">
-        <div class="wm-brand__mark">W</div>
-        <span class="wm-brand__text">White<span class="wm-brand__gold">Market</span></span>
+        <span class="brand-icon">🛍️</span>
+        <span class="wm-brand__text">Adnu<span class="wm-brand__gold">Market</span></span>
       </router-link>
 
       <div class="wm-nav__links">
