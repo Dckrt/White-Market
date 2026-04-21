@@ -13,13 +13,24 @@
         </div>
         <div class="wm-admin-login__field">
           <label>Admin Password</label>
-          <input v-model="pw" type="password" placeholder="Enter admin password" @keyup.enter="doLogin" class="wm-admin-login__input" />
+          <div class="wm-admin-login__input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input v-model="pw" type="password" placeholder="Enter admin password" @keyup.enter="doLogin" class="wm-admin-login__input" />
+          </div>
         </div>
         <button @click="doLogin" :disabled="loggingIn" class="wm-admin-login__btn">
+          <svg v-if="!loggingIn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
           {{ loggingIn ? 'Verifying…' : 'Access Dashboard' }}
         </button>
-        <p v-if="loginErr" class="wm-admin-login__err">{{ loginErr }}</p>
-        <router-link to="/" class="wm-admin-login__back">← Back to site</router-link>
+        <p v-if="loginErr" class="wm-admin-login__err">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ loginErr }}
+        </p>
+        <router-link to="/" class="wm-admin-login__back">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to site
+        </router-link>
       </div>
     </div>
 
@@ -36,14 +47,8 @@
           </div>
         </div>
         <nav class="wm-admin-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="wm-admin-nav__item"
-            :class="{ 'wm-admin-nav__item--active': activeTab === tab.key }"
-            @click="switchTab(tab.key)"
-          >
-            <component :is="tab.icon" class="wm-admin-nav__icon" />
+          <button v-for="tab in tabs" :key="tab.key" class="wm-admin-nav__item" :class="{ 'wm-admin-nav__item--active': activeTab === tab.key }" @click="switchTab(tab.key)">
+            <component :is="tab.icon" class="wm-admin-nav__ico" />
             {{ tab.label }}
             <span v-if="tab.key === 'users' && stats.users" class="wm-admin-nav__pill">{{ stats.users }}</span>
             <span v-if="tab.key === 'products' && stats.products" class="wm-admin-nav__pill">{{ stats.products }}</span>
@@ -51,10 +56,13 @@
         </nav>
         <div class="wm-admin-aside__footer">
           <button @click="doLogout" class="wm-admin-logout">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Log out
           </button>
-          <router-link to="/" class="wm-admin-site-link">← Back to site</router-link>
+          <router-link to="/" class="wm-admin-site-link">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to site
+          </router-link>
         </div>
       </aside>
 
@@ -67,7 +75,6 @@
             <h1 class="wm-admin-section__title">Overview</h1>
             <p class="wm-admin-section__sub">White Market platform summary</p>
           </div>
-
           <div class="wm-admin-stat-grid">
             <div class="wm-stat-card" v-for="s in statCards" :key="s.label">
               <div class="wm-stat-card__icon" :style="`background:${s.bg}`">
@@ -103,7 +110,10 @@
               <h1 class="wm-admin-section__title">All Listings</h1>
               <span class="wm-admin-count-badge">{{ filteredProds.length }} items</span>
             </div>
-            <input v-model="prodSearch" class="wm-admin-search" placeholder="Search title, seller, category…" />
+            <div class="wm-admin-search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input v-model="prodSearch" class="wm-admin-search" placeholder="Search title, seller, category…" />
+            </div>
           </div>
           <div class="wm-table-wrap">
             <table class="wm-table">
@@ -113,14 +123,14 @@
                 <tr v-else-if="!filteredProds.length"><td colspan="9" class="wm-table__empty">No products found</td></tr>
                 <tr v-for="p in filteredProds" :key="p.id" class="wm-table__row">
                   <td class="wm-table__id">{{ p.id }}</td>
-                  <td><img v-if="p.image_url" :src="p.image_url" class="wm-table__thumb" alt="" @error="e=>e.target.style.opacity='.1'" /><div v-else class="wm-table__thumb wm-table__thumb--empty"></div></td>
+                  <td><img v-if="p.image_url" :src="p.image_url" class="wm-table__thumb" alt="" /><div v-else class="wm-table__thumb wm-table__thumb--empty"></div></td>
                   <td class="wm-table__title">{{ p.title }}</td>
                   <td><span class="wm-cat-tag">{{ p.category }}</span></td>
                   <td class="wm-table__price">₱{{ fmtPrice(p.price) }}</td>
-                  <td><span :class="['wm-status-tag', p.status==='Available' ? 'wm-status-tag--avail' : 'wm-status-tag--sold']">{{ p.status }}</span></td>
+                  <td><span :class="['wm-status-tag', p.status==='Available' ? 'wm-status-tag--avail':'wm-status-tag--sold']">{{ p.status }}</span></td>
                   <td class="wm-table__muted">{{ p.seller_name||'—' }}</td>
-                  <td class="wm-table__muted">{{ fmtDate(p.created_at) }}</td>
-                  <td><button class="wm-del-btn" @click="delProd(p)">Delete</button></td>
+                  <td class="wm-table__muted wm-table__nowrap">{{ fmtDate(p.created_at) }}</td>
+                  <td><button class="wm-del-btn" @click="delProd(p)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete</button></td>
                 </tr>
               </tbody>
             </table>
@@ -134,7 +144,10 @@
               <h1 class="wm-admin-section__title">All Users</h1>
               <span class="wm-admin-count-badge">{{ filteredUsers.length }} users</span>
             </div>
-            <input v-model="userSearch" class="wm-admin-search" placeholder="Search name, email, student ID…" />
+            <div class="wm-admin-search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input v-model="userSearch" class="wm-admin-search" placeholder="Search name, email, student ID…" />
+            </div>
           </div>
           <div class="wm-table-wrap">
             <table class="wm-table">
@@ -154,7 +167,7 @@
                   <td class="wm-table__mono">{{ u.student_id||'—' }}</td>
                   <td class="wm-table__muted wm-table__ellipsis" style="max-width:160px">{{ u.course||'—' }}</td>
                   <td class="wm-table__muted">{{ u.year_level ? 'Year '+u.year_level : '—' }}</td>
-                  <td><button class="wm-del-btn" @click="delUser(u)">Delete</button></td>
+                  <td><button class="wm-del-btn" @click="delUser(u)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete</button></td>
                 </tr>
               </tbody>
             </table>
@@ -168,7 +181,10 @@
               <h1 class="wm-admin-section__title">All Messages</h1>
               <span class="wm-admin-count-badge">{{ filteredMsgs.length }} messages</span>
             </div>
-            <input v-model="msgSearch" class="wm-admin-search" placeholder="Search sender, receiver, message…" />
+            <div class="wm-admin-search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input v-model="msgSearch" class="wm-admin-search" placeholder="Search sender, receiver, message…" />
+            </div>
           </div>
           <div class="wm-table-wrap">
             <table class="wm-table">
@@ -182,7 +198,7 @@
                   <td class="wm-table__muted">{{ m.receiver_name||m.receiver_id }}</td>
                   <td class="wm-table__msg" :title="m.message">{{ m.message }}</td>
                   <td class="wm-table__muted wm-table__nowrap">{{ fmtDate(m.sent_at) }}</td>
-                  <td><span :class="['wm-read-tag', m.is_read ? 'wm-read-tag--read' : 'wm-read-tag--unread']">{{ m.is_read ? 'Read' : 'Unread' }}</span></td>
+                  <td><span :class="['wm-read-tag', m.is_read ? 'wm-read-tag--read':'wm-read-tag--unread']">{{ m.is_read ? 'Read' : 'Unread' }}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -194,7 +210,11 @@
 
     <!-- Toast -->
     <Transition name="wm-toast">
-      <div v-if="toast.show" :class="['wm-admin-toast', `wm-admin-toast--${toast.type}`]">{{ toast.text }}</div>
+      <div v-if="toast.show" :class="['wm-admin-toast', `wm-admin-toast--${toast.type}`]">
+        <svg v-if="toast.type==='success'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        {{ toast.text }}
+      </div>
     </Transition>
   </div>
 </template>
@@ -213,41 +233,31 @@ const prodSearch = ref(''), userSearch = ref(''), msgSearch = ref('')
 const toast = ref({ show: false, text: '', type: '' })
 let toastTimer = null
 
-const IconUsers = { render: () => h('svg', { width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round','stroke-linejoin':'round' }, [h('path',{d:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'}),h('circle',{cx:9,cy:7,r:4}),h('path',{d:'M23 21v-2a4 4 0 0 0-3-3.87'}),h('path',{d:'M16 3.13a4 4 0 0 1 0 7.75'})]) }
-const IconBox = { render: () => h('svg', { width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round','stroke-linejoin':'round' }, [h('path',{d:'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'}),h('polyline',{points:'3.27 6.96 12 12.01 20.73 6.96'}),h('line',{x1:12,y1:'22.08',x2:12,y2:12})]) }
-const IconMsg = { render: () => h('svg', { width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round','stroke-linejoin':'round' }, [h('path',{d:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'})]) }
-const IconCart = { render: () => h('svg', { width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round','stroke-linejoin':'round' }, [h('circle',{cx:9,cy:21,r:1}),h('circle',{cx:20,cy:21,r:1}),h('path',{d:'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'})]) }
-const IconGrid = { render: () => h('svg', { width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round','stroke-linejoin':'round' }, [h('rect',{x:3,y:3,width:7,height:7}),h('rect',{x:14,y:3,width:7,height:7}),h('rect',{x:14,y:14,width:7,height:7}),h('rect',{x:3,y:14,width:7,height:7})]) }
+// SVG icon components
+const mkIcon = (paths) => ({ render: () => h('svg', { width:16, height:16, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', 'stroke-width':'1.8', 'stroke-linecap':'round', 'stroke-linejoin':'round' }, paths.map(d => h('path', { d }))) })
+
+const IconGrid = { render: () => h('svg', {width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8'}, [h('rect',{x:3,y:3,width:7,height:7}),h('rect',{x:14,y:3,width:7,height:7}),h('rect',{x:14,y:14,width:7,height:7}),h('rect',{x:3,y:14,width:7,height:7})]) }
+const IconBox = { render: () => h('svg', {width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'}, [h('path',{d:'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'}),h('polyline',{points:'3.27 6.96 12 12.01 20.73 6.96'}),h('line',{x1:12,y1:'22.08',x2:12,y2:12})]) }
+const IconUsers = { render: () => h('svg', {width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'}, [h('path',{d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2'}),h('circle',{cx:9,cy:7,r:4}),h('path',{d:'M23 21v-2a4 4 0 00-3-3.87'}),h('path',{d:'M16 3.13a4 4 0 010 7.75'})]) }
+const IconMsg = { render: () => h('svg', {width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'}, [h('path',{d:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'})]) }
+const IconCart = { render: () => h('svg', {width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'}, [h('circle',{cx:9,cy:21,r:1}),h('circle',{cx:20,cy:21,r:1}),h('path',{d:'M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6'})]) }
 
 const tabs = [
-  { key:'overview', label:'Overview', icon: IconGrid },
-  { key:'products', label:'Products', icon: IconBox },
-  { key:'users',    label:'Users',    icon: IconUsers },
-  { key:'messages', label:'Messages', icon: IconMsg },
+  { key:'overview', label:'Overview',  icon: IconGrid },
+  { key:'products', label:'Products',  icon: IconBox },
+  { key:'users',    label:'Users',     icon: IconUsers },
+  { key:'messages', label:'Messages',  icon: IconMsg },
 ]
-
 const statCards = [
-  { key:'users',     label:'Registered Users',  icon: IconUsers, bg:'#e8f0fe', color:'#003366' },
-  { key:'products',  label:'Total Listings',     icon: IconBox,   bg:'#e8f8f0', color:'#15803d' },
-  { key:'messages',  label:'Messages Sent',      icon: IconMsg,   bg:'#fef9e0', color:'#854d0e' },
-  { key:'cart_items',label:'Cart Items',         icon: IconCart,  bg:'#fee8e8', color:'#b91c1c' },
+  { key:'users',      label:'Registered Users', icon: IconUsers, bg:'#e8f0fe', color:'#003366' },
+  { key:'products',   label:'Total Listings',   icon: IconBox,   bg:'#e8f8f0', color:'#15803d' },
+  { key:'messages',   label:'Messages Sent',    icon: IconMsg,   bg:'#fef9e0', color:'#854d0e' },
+  { key:'cart_items', label:'Cart Items',       icon: IconCart,  bg:'#fee8e8', color:'#b91c1c' },
 ]
 
-const filteredProds = computed(() => {
-  const q = prodSearch.value.toLowerCase()
-  if (!q) return allProds.value
-  return allProds.value.filter(p => (p.title||'').toLowerCase().includes(q)||(p.seller_name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q))
-})
-const filteredUsers = computed(() => {
-  const q = userSearch.value.toLowerCase()
-  if (!q) return allUsers.value
-  return allUsers.value.filter(u => (u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)||(u.student_id||'').toLowerCase().includes(q))
-})
-const filteredMsgs = computed(() => {
-  const q = msgSearch.value.toLowerCase()
-  if (!q) return allMsgs.value
-  return allMsgs.value.filter(m => (m.message||'').toLowerCase().includes(q)||(m.sender_name||'').toLowerCase().includes(q)||(m.receiver_name||'').toLowerCase().includes(q))
-})
+const filteredProds = computed(() => { const q = prodSearch.value.toLowerCase(); if (!q) return allProds.value; return allProds.value.filter(p => (p.title||'').toLowerCase().includes(q)||(p.seller_name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q)) })
+const filteredUsers = computed(() => { const q = userSearch.value.toLowerCase(); if (!q) return allUsers.value; return allUsers.value.filter(u => (u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)||(u.student_id||'').toLowerCase().includes(q)) })
+const filteredMsgs  = computed(() => { const q = msgSearch.value.toLowerCase(); if (!q) return allMsgs.value; return allMsgs.value.filter(m => (m.message||'').toLowerCase().includes(q)||(m.sender_name||'').toLowerCase().includes(q)||(m.receiver_name||'').toLowerCase().includes(q)) })
 
 const doLogin = async () => {
   if (!pw.value.trim()) { loginErr.value = 'Please enter the password.'; return }
@@ -261,49 +271,36 @@ const doLogin = async () => {
     else loginErr.value = 'Cannot reach backend. Is Flask running?'
   } finally { loggingIn.value = false }
 }
-
 const doLogout = () => { sessionStorage.removeItem('admin_auth'); authed.value = false; pw.value = '' }
-
 onMounted(() => { if (sessionStorage.getItem('admin_auth')) { authed.value = true; loadAll() } })
 
 const loadAll = async () => {
   try { const r = await api.adminStats(); stats.value = r.data } catch {}
   try { const r = await api.adminProducts(); recentProds.value = r.data } catch {}
 }
-
 const switchTab = (k) => {
   activeTab.value = k
   if (k === 'products' && !allProds.value.length) loadProds()
-  if (k === 'users' && !allUsers.value.length) loadUsers()
-  if (k === 'messages' && !allMsgs.value.length) loadMsgsTab()
+  if (k === 'users'    && !allUsers.value.length)  loadUsers()
+  if (k === 'messages' && !allMsgs.value.length)   loadMsgsTab()
 }
+const loadProds   = async () => { loadingProds.value = true; try { const r = await api.adminProducts(); allProds.value = r.data } catch { showToast('Failed to load','error') } finally { loadingProds.value = false } }
+const loadUsers   = async () => { loadingUsers.value = true; try { const r = await api.adminUsers();    allUsers.value = r.data } catch { showToast('Failed to load','error') } finally { loadingUsers.value = false } }
+const loadMsgsTab = async () => { loadingMsgs.value  = true; try { const r = await api.adminMessages();allMsgs.value  = r.data } catch { showToast('Failed to load','error') } finally { loadingMsgs.value  = false } }
 
-const loadProds = async () => { loadingProds.value = true; try { const r = await api.adminProducts(); allProds.value = r.data } catch { showToast('Failed to load','error') } finally { loadingProds.value = false } }
-const loadUsers = async () => { loadingUsers.value = true; try { const r = await api.adminUsers(); allUsers.value = r.data } catch { showToast('Failed to load','error') } finally { loadingUsers.value = false } }
-const loadMsgsTab = async () => { loadingMsgs.value = true; try { const r = await api.adminMessages(); allMsgs.value = r.data } catch { showToast('Failed to load','error') } finally { loadingMsgs.value = false } }
+const delProd = async (p) => { if (!confirm(`Delete "${p.title}"?\n\nCannot be undone.`)) return; try { await api.adminDeleteProduct(p.id); allProds.value = allProds.value.filter(x=>x.id!==p.id); recentProds.value = recentProds.value.filter(x=>x.id!==p.id); showToast('Product deleted','success') } catch { showToast('Failed to delete','error') } }
+const delUser = async (u) => { if (!confirm(`Delete user "${u.name}"?\n\nRemoves all their data. Cannot be undone.`)) return; try { await api.adminDeleteUser(u.id); allUsers.value = allUsers.value.filter(x=>x.id!==u.id); showToast('User deleted','success') } catch { showToast('Failed to delete','error') } }
 
-const delProd = async (p) => {
-  if (!confirm(`Delete "${p.title}"?\n\nCannot be undone.`)) return
-  try { await api.adminDeleteProduct(p.id); allProds.value = allProds.value.filter(x => x.id !== p.id); recentProds.value = recentProds.value.filter(x => x.id !== p.id); showToast('Product deleted','success') }
-  catch { showToast('Failed to delete','error') }
-}
-const delUser = async (u) => {
-  if (!confirm(`Delete user "${u.name}"?\n\nRemoves all their data. Cannot be undone.`)) return
-  try { await api.adminDeleteUser(u.id); allUsers.value = allUsers.value.filter(x => x.id !== u.id); showToast('User deleted','success') }
-  catch { showToast('Failed to delete','error') }
-}
-
-const showToast = (text, type='') => {
-  clearTimeout(toastTimer); toast.value = { show:true, text, type }
-  toastTimer = setTimeout(() => { toast.value.show = false }, 3000)
-}
-
-const fmtDate = (d) => { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) } catch { return d } }
+const showToast = (text, type='') => { clearTimeout(toastTimer); toast.value = { show:true, text, type }; toastTimer = setTimeout(() => { toast.value.show = false }, 3000) }
+const fmtDate  = (d) => { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) } catch { return d } }
 const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:2})
 </script>
 
 <style scoped>
-.wm-admin { min-height:100vh; font-family:'Inter','Plus Jakarta Sans',sans-serif; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.spin { animation:spin 0.8s linear infinite; transform-origin:center; }
+
+.wm-admin { min-height:100vh; font-family:'Plus Jakarta Sans','Inter',sans-serif; }
 
 /* LOGIN */
 .wm-admin-login { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f4f7fb; }
@@ -314,13 +311,14 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 .wm-admin-login__sub { font-size:0.78rem; color:#888; margin:0; }
 .wm-admin-login__field { display:flex; flex-direction:column; gap:5px; }
 .wm-admin-login__field label { font-size:0.78rem; font-weight:700; color:#003366; text-transform:uppercase; letter-spacing:0.4px; }
-.wm-admin-login__input { padding:10px 14px; border:1.5px solid #e0e8f4; border-radius:9px; font-size:0.9rem; outline:none; transition:border-color 0.15s; font-family:inherit; color:#1a1a2e; letter-spacing:2px; }
-.wm-admin-login__input:focus { border-color:#003366; }
-.wm-admin-login__btn { background:#003366; color:#fff; border:none; border-radius:9px; padding:12px; font-size:0.9rem; font-weight:700; cursor:pointer; transition:0.15s; font-family:inherit; }
+.wm-admin-login__input-wrap { display:flex; align-items:center; gap:8px; border:1.5px solid #e0e8f4; border-radius:9px; padding:10px 14px; transition:border-color 0.15s; background:#fafcff; }
+.wm-admin-login__input-wrap:focus-within { border-color:#003366; }
+.wm-admin-login__input { flex:1; border:none; outline:none; font-size:0.9rem; color:#1a1a2e; font-family:inherit; background:transparent; letter-spacing:2px; }
+.wm-admin-login__btn { background:#003366; color:#FFD700; border:none; border-radius:9px; padding:12px; font-size:0.9rem; font-weight:700; cursor:pointer; transition:0.15s; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; }
 .wm-admin-login__btn:hover:not(:disabled) { background:#002244; }
 .wm-admin-login__btn:disabled { opacity:0.6; cursor:not-allowed; }
-.wm-admin-login__err { color:#c0392b; font-size:0.8rem; text-align:center; margin:0; }
-.wm-admin-login__back { text-align:center; font-size:0.8rem; color:#888; text-decoration:none; }
+.wm-admin-login__err { color:#c0392b; font-size:0.8rem; text-align:center; margin:0; display:flex; align-items:center; justify-content:center; gap:5px; }
+.wm-admin-login__back { text-align:center; font-size:0.8rem; color:#888; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px; }
 .wm-admin-login__back:hover { color:#003366; }
 
 /* DASHBOARD */
@@ -328,7 +326,7 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 
 /* ASIDE */
 .wm-admin-aside { background:#003366; display:flex; flex-direction:column; }
-.wm-admin-aside__brand { display:flex; align-items:center; gap:12px; padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,0.08); }
+.wm-admin-aside__brand { display:flex; align-items:center; gap:12px; padding:20px; border-bottom:1px solid rgba(255,255,255,0.08); }
 .wm-admin-aside__mark { width:36px; height:36px; background:#FFD700; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#003366; font-size:18px; font-weight:900; font-family:Georgia,serif; flex-shrink:0; }
 .wm-admin-aside__name { font-size:0.9rem; font-weight:800; color:#fff; margin:0 0 2px; }
 .wm-admin-aside__role { font-size:0.7rem; color:rgba(255,255,255,0.5); margin:0; text-transform:uppercase; letter-spacing:0.5px; }
@@ -338,26 +336,24 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 .wm-admin-nav__item:hover { background:rgba(255,255,255,0.1); color:#fff; }
 .wm-admin-nav__item--active { background:#FFD700; color:#003366; font-weight:700; }
 .wm-admin-nav__item--active:hover { background:#e6c200; }
-.wm-admin-nav__icon { flex-shrink:0; }
+.wm-admin-nav__ico { flex-shrink:0; }
 .wm-admin-nav__pill { margin-left:auto; background:rgba(255,255,255,0.2); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
 .wm-admin-nav__item--active .wm-admin-nav__pill { background:rgba(0,51,102,0.2); color:#003366; }
 
 .wm-admin-aside__footer { padding:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:8px; }
 .wm-admin-logout { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.7); padding:9px 12px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; transition:0.15s; font-family:inherit; }
 .wm-admin-logout:hover { background:rgba(255,255,255,0.15); color:#fff; }
-.wm-admin-site-link { text-align:center; font-size:0.75rem; color:rgba(255,255,255,0.4); text-decoration:none; }
+.wm-admin-site-link { text-align:center; font-size:0.75rem; color:rgba(255,255,255,0.4); text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px; }
 .wm-admin-site-link:hover { color:rgba(255,255,255,0.7); }
 
 /* MAIN */
 .wm-admin-main { background:#f4f7fb; overflow-y:auto; }
 .wm-admin-section { padding:28px 32px 48px; }
-
 .wm-admin-section__head { margin-bottom:20px; }
 .wm-admin-section__title { font-size:1.5rem; font-weight:800; color:#003366; margin:0 0 4px; }
 .wm-admin-section__sub { font-size:0.875rem; color:#888; margin:0; }
 .wm-admin-section__subtitle { font-size:1rem; font-weight:700; color:#003366; margin:0; }
 
-/* Stat cards */
 .wm-admin-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
 .wm-stat-card { background:#fff; border:1px solid #e2eaf4; border-radius:14px; padding:18px 20px; display:flex; align-items:center; gap:14px; transition:box-shadow 0.15s; }
 .wm-stat-card:hover { box-shadow:0 4px 16px rgba(0,51,102,0.08); }
@@ -366,7 +362,6 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 .wm-stat-card__num { font-size:1.6rem; font-weight:800; color:#003366; line-height:1; }
 .wm-stat-card__label { font-size:0.78rem; color:#888; }
 
-/* Recent list */
 .wm-recent-list { background:#fff; border:1px solid #e2eaf4; border-radius:14px; overflow:hidden; }
 .wm-admin-empty { padding:1.5rem; text-align:center; color:#bbb; font-size:0.875rem; }
 .wm-recent-item { display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid #f0f4f8; transition:background 0.12s; }
@@ -378,15 +373,14 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 .wm-recent-item__meta { font-size:0.75rem; color:#888; margin:0; }
 .wm-recent-item__price { font-size:0.9rem; font-weight:700; color:#003366; white-space:nowrap; }
 
-/* Table head */
 .wm-admin-table-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
 .wm-admin-table-head > div { display:flex; align-items:center; gap:10px; }
 .wm-admin-count-badge { background:#e8f0fe; color:#003366; font-size:12px; font-weight:700; padding:3px 10px; border-radius:12px; }
-.wm-admin-search { background:#fff; border:1.5px solid #e0e8f4; border-radius:9px; padding:9px 14px; color:#333; font-size:0.875rem; outline:none; width:280px; transition:border-color 0.15s; font-family:inherit; }
+.wm-admin-search-wrap { display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #e0e8f4; border-radius:9px; padding:8px 14px; transition:border-color 0.15s; }
+.wm-admin-search-wrap:focus-within { border-color:#003366; }
+.wm-admin-search { border:none; outline:none; font-size:0.875rem; color:#333; background:transparent; width:250px; font-family:inherit; }
 .wm-admin-search::placeholder { color:#bbb; }
-.wm-admin-search:focus { border-color:#003366; }
 
-/* Table */
 .wm-table-wrap { background:#fff; border:1px solid #e2eaf4; border-radius:14px; overflow:hidden; overflow-x:auto; }
 .wm-table { width:100%; border-collapse:collapse; }
 .wm-table thead tr { background:#f8faff; border-bottom:1px solid #e8edf4; }
@@ -398,34 +392,32 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
 .wm-table__id { color:#aaa; font-size:0.75rem; font-family:monospace; }
 .wm-table__title { font-weight:600; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wm-table__bold { font-weight:600; }
-.wm-table__muted { color:#888; font-size:0.8rem; }
+.wm-table__muted { color:#888; font-size:0.82rem; }
 .wm-table__nowrap { white-space:nowrap; }
 .wm-table__mono { font-family:monospace; font-size:0.8rem; color:#555; }
 .wm-table__ellipsis { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wm-table__price { font-weight:700; color:#003366; white-space:nowrap; }
 .wm-table__msg { max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#666; }
-
 .wm-table__thumb { width:36px; height:36px; border-radius:7px; object-fit:cover; display:block; background:#f0f4f8; border:1px solid #e8edf4; }
-.wm-table__thumb--empty { opacity:0.3; }
+.wm-table__thumb--empty { opacity:0.25; }
 
-.wm-cat-tag { display:inline-block; padding:3px 8px; background:#e8f0fe; color:#003366; border-radius:5px; font-size:11px; font-weight:700; }
-.wm-status-tag { display:inline-block; padding:3px 8px; border-radius:5px; font-size:11px; font-weight:700; }
+.wm-cat-tag { display:inline-block; padding:3px 9px; background:#e8f0fe; color:#003366; border-radius:6px; font-size:11px; font-weight:700; }
+.wm-status-tag { display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; }
 .wm-status-tag--avail { background:#e8f8f0; color:#15803d; }
-.wm-status-tag--sold { background:#fee8e8; color:#b91c1c; }
-.wm-read-tag { display:inline-block; padding:3px 8px; border-radius:5px; font-size:11px; font-weight:700; }
-.wm-read-tag--read { background:#e8f8f0; color:#15803d; }
+.wm-status-tag--sold  { background:#fee8e8; color:#b91c1c; }
+.wm-read-tag { display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; }
+.wm-read-tag--read   { background:#e8f8f0; color:#15803d; }
 .wm-read-tag--unread { background:#fef9e0; color:#854d0e; }
-
 .wm-user-row { display:flex; align-items:center; gap:8px; }
 .wm-user-av { width:28px; height:28px; border-radius:50%; background:#003366; color:#FFD700; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
 
-.wm-del-btn { background:none; border:1px solid #fcc; color:#c0392b; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; transition:0.12s; font-family:inherit; }
+.wm-del-btn { background:none; border:1px solid #fcc; color:#c0392b; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; transition:0.12s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
 .wm-del-btn:hover { background:#fff5f5; border-color:#f99; }
 
 /* Toast */
-.wm-admin-toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:10px; font-size:0.875rem; font-weight:600; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.12); }
+.wm-admin-toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:10px; font-size:0.875rem; font-weight:600; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:flex; align-items:center; gap:8px; }
 .wm-admin-toast--success { background:#fff; border:1.5px solid #16a34a; color:#15803d; }
-.wm-admin-toast--error { background:#fff; border:1.5px solid #c0392b; color:#c0392b; }
+.wm-admin-toast--error   { background:#fff; border:1.5px solid #c0392b; color:#c0392b; }
 .wm-toast-enter-active,.wm-toast-leave-active { transition:all 0.2s ease; }
 .wm-toast-enter-from,.wm-toast-leave-to { opacity:0; transform:translateY(8px); }
 
@@ -433,7 +425,5 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:
   .wm-admin-dash { grid-template-columns:1fr; }
   .wm-admin-aside { display:none; }
   .wm-admin-section { padding:20px 16px 40px; }
-  .wm-admin-search { width:100%; }
-  .wm-admin-table-head { flex-direction:column; align-items:flex-start; }
 }
 </style>
