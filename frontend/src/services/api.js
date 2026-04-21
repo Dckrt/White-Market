@@ -1,6 +1,3 @@
-// ============================================================
-// FILE 1: frontend/src/services/api.js
-// ============================================================
 import axios from 'axios'
 
 const apiClient = axios.create({
@@ -27,15 +24,22 @@ export default {
   login:    (data) => apiClient.post('/login', data),
 
   // PRODUCTS
-  getProducts:            (params = {}) => apiClient.get('/products', { params }),
-  getMyProducts:          (userId)      => apiClient.get('/products', { params: { seller_id: userId } }),
-  getProduct:             (id)          => apiClient.get(`/products/${id}`),
-  createProduct:          (data)        => data instanceof FormData
+  getProducts:   (params = {}) => apiClient.get('/products', { params }),
+  getMyProducts: (userId)      => apiClient.get('/products', { params: { seller_id: userId } }),
+  getProduct:    (id)          => apiClient.get(`/products/${id}`),
+  createProduct: (data)        => data instanceof FormData
     ? apiClient.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } })
     : apiClient.post('/products', data),
-  updateProduct:          (id, data)    => apiClient.put(`/products/${id}`, data),
-  updateProductWithImage: (id, fd)      => apiClient.put(`/products/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteProduct:          (id, userId)  => apiClient.delete(`/products/${id}`, { params: { user_id: userId } }),
+  updateProduct:          (id, data) => apiClient.put(`/products/${id}`, data),
+  updateProductWithImage: (id, fd)   => apiClient.put(`/products/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteProduct:          (id, uid)  => apiClient.delete(`/products/${id}`, { params: { user_id: uid } }),
+
+  // PRICE HISTORY
+  getPriceHistory: (productId) => apiClient.get(`/products/${productId}/price-history`),
+
+  // TAGS
+  getAllTags:    ()    => apiClient.get('/tags'),
+  compareByTag: (tag) => apiClient.get('/products/compare', { params: { tag } }),
 
   // CART
   addToCart:      (data)   => apiClient.post('/cart', data),
@@ -46,15 +50,15 @@ export default {
   checkout: (data) => apiClient.post('/checkout', data),
 
   // SELLER PAYMENT
-  getSellerPayment:    (sellerId) => apiClient.get(`/users/${sellerId}/payment`),
-  updateSellerPayment: (id, data) => apiClient.put(`/users/${id}/payment`, data),
+  getSellerPayment:    (sid)       => apiClient.get(`/users/${sid}/payment`),
+  updateSellerPayment: (uid, data) => apiClient.put(`/users/${uid}/payment`, data),
 
   // MESSAGES
-  sendMessage:      (data)           => apiClient.post('/messages', data),
-  getMessages:      (uid, pid)       => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
-  getThreads:       (userId)         => apiClient.get('/messages/threads', { params: { user_id: userId } }),
-  getUnreadCount:   (userId)         => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
-  markMessagesRead: (data)           => apiClient.post('/messages/mark-read', data).catch(() => {}),
+  sendMessage:      (data)      => apiClient.post('/messages', data),
+  getMessages:      (uid, pid)  => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
+  getThreads:       (userId)    => apiClient.get('/messages/threads', { params: { user_id: userId } }),
+  getUnreadCount:   (userId)    => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
+  markMessagesRead: (data)      => apiClient.post('/messages/mark-read', data).catch(() => {}),
 
   // NOTIFICATIONS
   getNotifications:      (userId) => apiClient.get('/notifications', { params: { user_id: userId } }),

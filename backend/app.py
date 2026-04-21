@@ -2,8 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-import oracledb
-import os
+import oracledb, os, json
 
 oracledb.init_oracle_client(
     lib_dir=r"C:\Users\Lito\Downloads\instantclient-basic-windows.x64-23.26.1.0.0\instantclient_23_26"
@@ -21,18 +20,43 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 db     = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
-
 ADMIN_PASSWORD = "adnu_admin_2024"
 
-# ── HELPERS ──────────────────────────────────────────────────────────────────
+# ── HELPERS ───────────────────────────────────────────────────────────────────
 
 def save_image(file):
-    if not file:
+    if not file or file.filename == '':
         return None
     filename = f"{os.urandom(8).hex()}_{file.filename.replace(' ', '_')}"
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(filepath)
     return f"/static/uploads/{filename}"
+
+def save_images(files):
+    """Save multiple images, return JSON array string of URLs."""
+    urls = []
+    for file in files:
+        url = save_image(file)
+        if url:
+            urls.append(url)
+    return json.dumps(urls) if urls else None
+
+def full_url(path):
+    if not path:
+        return None
+    return f"http://127.0.0.1:5000{path}"
+
+def parse_images(image_url_raw):
+    """Parse image_url field — could be JSON array or single string."""
+    if not image_url_raw:
+        return []
+    try:
+        parsed = json.loads(image_url_raw)
+        if isinstance(parsed, list):
+            return [full_url(u) for u in parsed if u]
+        return [full_url(image_url_raw)]
+    except Exception:
+        return [full_url(image_url_raw)]
 
 def send_notification(user_id, message):
     try:
@@ -45,15 +69,23 @@ def send_notification(user_id, message):
         print("NOTIFICATION ERROR:", e)
         db.session.rollback()
 
-# ── STATIC ───────────────────────────────────────────────────────────────────
+def track_price(product_id, price):
+    """Insert a price history record."""
+    try:
+        db.session.execute(db.text("""
+            INSERT INTO PRICE_HISTORY (id, product_id, price, recorded_at)
+            VALUES (price_hist_seq.NEXTVAL, :pid, :price, SYSDATE)
+        """), {"pid": product_id, "price": price})
+        db.session.commit()
+    except Exception as e:
+        print("PRICE HISTORY ERROR (non-fatal):", e)
+        db.session.rollback()
+
+# ── ROOT ──────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def home():
     return "White Market Backend running!"
-
-@app.route("/static/uploads/<path:filename>")
-def serve_upload(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 # ── AUTH ──────────────────────────────────────────────────────────────────────
 
@@ -87,7 +119,6 @@ def register():
         return jsonify({"message": "Registered successfully"}), 201
     except Exception as e:
         db.session.rollback()
-        print("REGISTER ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 @app.route("/api/login", methods=["POST"])
@@ -114,47 +145,64 @@ def login():
 def get_products():
     try:
         seller_id = request.args.get("seller_id")
-        search    = request.args.get("search", "")
+        search    = request.args.get("search", "").strip()
         category  = request.args.get("category", "")
+        tag       = request.args.get("tag", "")
+        sort      = request.args.get("sort", "newest")  # newest, oldest, price_asc, price_desc, name_asc, name_desc
+
+        base_select = """
+            SELECT p.id, p.title, p.description, p.price, p.category,
+                   p.status, p.seller_id, p.image_url, u.name AS seller_name,
+                   p.tags, p.created_at
+            FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
+        """
+
+        order_map = {
+            "newest":     "p.id DESC",
+            "oldest":     "p.id ASC",
+            "price_asc":  "p.price ASC",
+            "price_desc": "p.price DESC",
+            "name_asc":   "p.title ASC",
+            "name_desc":  "p.title DESC",
+        }
+        order_clause = order_map.get(sort, "p.id DESC")
+
+        params = {}
+
         if seller_id:
-            result = db.session.execute(db.text("""
-                SELECT p.id, p.title, p.description, p.price, p.category,
-                       p.status, p.seller_id, p.image_url, u.name AS seller_name
-                FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
-                WHERE p.seller_id = :seller_id ORDER BY p.id DESC
-            """), {"seller_id": int(seller_id)})
-        elif search or category:
-            query = """
-                SELECT p.id, p.title, p.description, p.price, p.category,
-                       p.status, p.seller_id, p.image_url, u.name AS seller_name
-                FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
-                WHERE p.status = 'Available'
-            """
-            params = {}
+            query = base_select + " WHERE p.seller_id = :seller_id ORDER BY " + order_clause
+            params["seller_id"] = int(seller_id)
+        else:
+            conditions = ["p.status = 'Available'"]
             if search:
-                query += " AND (LOWER(p.title) LIKE :search OR LOWER(p.description) LIKE :search)"
+                conditions.append("(LOWER(p.title) LIKE :search OR LOWER(p.description) LIKE :search OR LOWER(p.tags) LIKE :search)")
                 params["search"] = f"%{search.lower()}%"
             if category:
-                query += " AND p.category = :category"
+                conditions.append("p.category = :category")
                 params["category"] = category
-            query += " ORDER BY p.id DESC"
-            result = db.session.execute(db.text(query), params)
-        else:
-            result = db.session.execute(db.text("""
-                SELECT p.id, p.title, p.description, p.price, p.category,
-                       p.status, p.seller_id, p.image_url, u.name AS seller_name
-                FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
-                WHERE p.status = 'Available' ORDER BY p.id DESC
-            """))
+            if tag:
+                conditions.append("LOWER(p.tags) LIKE :tag")
+                params["tag"] = f"%{tag.lower()}%"
+            where = " WHERE " + " AND ".join(conditions)
+            query = base_select + where + " ORDER BY " + order_clause
+
+        result = db.session.execute(db.text(query), params)
         products = []
         for row in result:
-            image_url = row[7]
-            if image_url:
-                image_url = f"http://127.0.0.1:5000{image_url}"
+            images = parse_images(row[7])
             products.append({
-                "id": row[0], "title": row[1], "description": row[2],
-                "price": float(row[3]), "category": row[4], "status": row[5],
-                "seller_id": row[6], "image_url": image_url, "seller_name": row[8]
+                "id":          row[0],
+                "title":       row[1],
+                "description": row[2],
+                "price":       float(row[3]),
+                "category":    row[4],
+                "status":      row[5],
+                "seller_id":   row[6],
+                "image_url":   images[0] if images else None,
+                "images":      images,
+                "seller_name": row[8],
+                "tags":        row[9].split(",") if row[9] else [],
+                "created_at":  str(row[10]) if row[10] else None,
             })
         return jsonify(products)
     except Exception as e:
@@ -166,20 +214,27 @@ def get_product(product_id):
     try:
         res = db.session.execute(db.text("""
             SELECT p.id, p.title, p.description, p.price, p.category,
-                   p.status, p.created_at, u.name AS seller_name, p.seller_id, p.image_url
+                   p.status, p.created_at, u.name AS seller_name,
+                   p.seller_id, p.image_url, p.tags
             FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
             WHERE p.id = :id
         """), {"id": product_id}).fetchone()
         if not res:
             return jsonify({"message": "Product not found"}), 404
-        image_url = res[9]
-        if image_url:
-            image_url = f"http://127.0.0.1:5000{image_url}"
+        images = parse_images(res[9])
         return jsonify({
-            "id": res[0], "title": res[1], "description": res[2],
-            "price": float(res[3]), "category": res[4], "status": res[5],
-            "created_at": str(res[6]) if res[6] else None,
-            "seller_name": res[7], "seller_id": res[8], "image_url": image_url
+            "id":          res[0],
+            "title":       res[1],
+            "description": res[2],
+            "price":       float(res[3]),
+            "category":    res[4],
+            "status":      res[5],
+            "created_at":  str(res[6]) if res[6] else None,
+            "seller_name": res[7],
+            "seller_id":   res[8],
+            "image_url":   images[0] if images else None,
+            "images":      images,
+            "tags":        res[10].split(",") if res[10] else [],
         })
     except Exception as e:
         print("GET PRODUCT ERROR:", e)
@@ -191,29 +246,42 @@ def create_product():
         if request.content_type and "multipart/form-data" in request.content_type:
             title       = request.form.get("title")
             description = request.form.get("description")
-            price       = request.form.get("price")
+            price       = float(request.form.get("price", 0))
             category    = request.form.get("category", "General")
             seller_id   = request.form.get("user_id")
-            image_url   = save_image(request.files.get("image"))
+            tags        = request.form.get("tags", "")
+            # Support multiple images
+            files = request.files.getlist("images") or request.files.getlist("image")
+            if files:
+                image_url = save_images(files)
+            else:
+                image_url = None
         else:
             data        = request.get_json()
             title       = data.get("title")
             description = data.get("description")
-            price       = data.get("price")
+            price       = float(data.get("price", 0))
             category    = data.get("category", "General")
             seller_id   = data.get("user_id")
+            tags        = data.get("tags", "")
             image_url   = None
+
+        # Get product id after insert
+        new_id = db.session.execute(db.text("SELECT products_seq.NEXTVAL FROM DUAL")).scalar()
         db.session.execute(db.text("""
             INSERT INTO PRODUCTS (id, title, description, price,
-                category, seller_id, created_at, status, image_url)
-            VALUES (products_seq.NEXTVAL, :title, :description, :price,
-                :category, :seller_id, SYSDATE, 'Available', :image_url)
+                category, seller_id, created_at, status, image_url, tags)
+            VALUES (:id, :title, :description, :price,
+                :category, :seller_id, SYSDATE, 'Available', :image_url, :tags)
         """), {
-            "title": title, "description": description, "price": price,
-            "category": category, "seller_id": seller_id, "image_url": image_url
+            "id": new_id, "title": title, "description": description,
+            "price": price, "category": category, "seller_id": seller_id,
+            "image_url": image_url, "tags": tags
         })
         db.session.commit()
-        return jsonify({"message": "Product created successfully"}), 201
+        # Track initial price
+        track_price(new_id, price)
+        return jsonify({"message": "Product created successfully", "id": new_id}), 201
     except Exception as e:
         db.session.rollback()
         print("PRODUCT ERROR:", e)
@@ -226,35 +294,47 @@ def update_product(product_id):
             user_id     = request.form.get("user_id")
             title       = request.form.get("title")
             description = request.form.get("description")
-            price       = request.form.get("price")
+            price       = float(request.form.get("price", 0))
             category    = request.form.get("category")
-            new_image   = save_image(request.files.get("image"))
+            tags        = request.form.get("tags", "")
+            files       = request.files.getlist("images") or request.files.getlist("image")
+            new_image   = save_images(files) if files and files[0].filename else None
         else:
             data        = request.get_json()
             user_id     = data.get("user_id")
             title       = data.get("title")
             description = data.get("description")
-            price       = data.get("price")
+            price       = float(data.get("price", 0))
             category    = data.get("category")
+            tags        = data.get("tags", "")
             new_image   = None
+
         owner = db.session.execute(
-            db.text("SELECT seller_id FROM PRODUCTS WHERE id = :id"), {"id": product_id}
-        ).scalar()
-        if not owner or int(owner) != int(user_id):
+            db.text("SELECT seller_id, price FROM PRODUCTS WHERE id = :id"), {"id": product_id}
+        ).fetchone()
+        if not owner or int(owner[0]) != int(user_id):
             return jsonify({"message": "Unauthorized"}), 403
+
+        old_price = float(owner[1])
+
         if new_image:
             db.session.execute(db.text("""
                 UPDATE PRODUCTS SET title=:title, description=:description,
-                    price=:price, category=:category, image_url=:image_url WHERE id=:id
+                    price=:price, category=:category, image_url=:image_url, tags=:tags WHERE id=:id
             """), {"title": title, "description": description, "price": price,
-                   "category": category, "image_url": new_image, "id": product_id})
+                   "category": category, "image_url": new_image, "tags": tags, "id": product_id})
         else:
             db.session.execute(db.text("""
                 UPDATE PRODUCTS SET title=:title, description=:description,
-                    price=:price, category=:category WHERE id=:id
-            """), {"title": title, "description": description,
-                   "price": price, "category": category, "id": product_id})
+                    price=:price, category=:category, tags=:tags WHERE id=:id
+            """), {"title": title, "description": description, "price": price,
+                   "category": category, "tags": tags, "id": product_id})
         db.session.commit()
+
+        # Track price change if price changed
+        if price != old_price:
+            track_price(product_id, price)
+
         return jsonify({"message": "Product updated successfully"})
     except Exception as e:
         db.session.rollback()
@@ -271,13 +351,77 @@ def delete_product(product_id):
         if not owner or int(owner) != int(user_id):
             return jsonify({"message": "Unauthorized"}), 403
         db.session.execute(db.text("DELETE FROM CART WHERE product_id = :id"), {"id": product_id})
+        db.session.execute(db.text("DELETE FROM PRICE_HISTORY WHERE product_id = :id"), {"id": product_id})
         db.session.execute(db.text("DELETE FROM PRODUCTS WHERE id = :id"), {"id": product_id})
         db.session.commit()
         return jsonify({"message": "Product deleted successfully"})
     except Exception as e:
         db.session.rollback()
-        print("DELETE PRODUCT ERROR:", e)
         return jsonify({"message": "Server error"}), 500
+
+# ── PRICE HISTORY ─────────────────────────────────────────────────────────────
+
+@app.route("/api/products/<int:product_id>/price-history", methods=["GET"])
+def get_price_history(product_id):
+    try:
+        result = db.session.execute(db.text("""
+            SELECT price, recorded_at FROM PRICE_HISTORY
+            WHERE product_id = :pid
+            ORDER BY recorded_at ASC
+        """), {"pid": product_id})
+        history = [{"price": float(r[0]), "date": str(r[1])} for r in result]
+        return jsonify(history)
+    except Exception as e:
+        print("PRICE HISTORY ERROR:", e)
+        return jsonify([])
+
+# ── TAGS ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/tags", methods=["GET"])
+def get_all_tags():
+    """Return all unique tags used across products."""
+    try:
+        result = db.session.execute(db.text("""
+            SELECT tags FROM PRODUCTS WHERE tags IS NOT NULL AND status = 'Available'
+        """))
+        tag_set = set()
+        for row in result:
+            if row[0]:
+                for t in row[0].split(","):
+                    t = t.strip()
+                    if t:
+                        tag_set.add(t)
+        return jsonify(sorted(list(tag_set)))
+    except Exception as e:
+        return jsonify([])
+
+# ── COMPARE BY TAG ────────────────────────────────────────────────────────────
+
+@app.route("/api/products/compare", methods=["GET"])
+def compare_by_tag():
+    """Get all products with a given tag for price comparison."""
+    tag = request.args.get("tag", "")
+    if not tag:
+        return jsonify([])
+    try:
+        result = db.session.execute(db.text("""
+            SELECT p.id, p.title, p.price, p.image_url, u.name AS seller_name, p.tags
+            FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
+            WHERE LOWER(p.tags) LIKE :tag AND p.status = 'Available'
+            ORDER BY p.price ASC
+        """), {"tag": f"%{tag.lower()}%"})
+        items = []
+        for row in result:
+            images = parse_images(row[3])
+            items.append({
+                "id": row[0], "title": row[1], "price": float(row[2]),
+                "image_url": images[0] if images else None,
+                "seller_name": row[4],
+                "tags": row[5].split(",") if row[5] else []
+            })
+        return jsonify(items)
+    except Exception as e:
+        return jsonify([])
 
 # ── CART ──────────────────────────────────────────────────────────────────────
 
@@ -297,14 +441,14 @@ def get_cart():
         """), {"user_id": int(user_id)})
         items = []
         for row in result:
-            image_url = row[8]
-            if image_url:
-                image_url = f"http://127.0.0.1:5000{image_url}"
+            images = parse_images(row[8])
             items.append({
                 "cart_id": row[0], "id": row[1], "title": row[2],
                 "price": float(row[3]), "category": row[4], "status": row[5],
                 "seller_id": row[6], "seller_name": row[7],
-                "image_url": image_url, "quantity": row[9] or 1
+                "image_url": images[0] if images else None,
+                "images": images,
+                "quantity": row[9] or 1
             })
         return jsonify(items)
     except Exception as e:
@@ -370,7 +514,6 @@ def checkout():
                 db.text("DELETE FROM CART WHERE id = :cart_id AND user_id = :user_id"),
                 {"cart_id": cart_id, "user_id": user_id}
             )
-        # Notify seller
         if product_id:
             prod = db.session.execute(
                 db.text("SELECT seller_id, title FROM PRODUCTS WHERE id = :id"),
@@ -380,12 +523,11 @@ def checkout():
                 buyer = db.session.execute(
                     db.text("SELECT name FROM USERS WHERE id = :id"), {"id": user_id}
                 ).scalar()
-                send_notification(prod[0], f"{buyer} placed an order for your product '{prod[1]}'!")
+                send_notification(prod[0], f"{buyer} placed an order for '{prod[1]}'!")
         db.session.commit()
         return jsonify({"message": "Order placed successfully"})
     except Exception as e:
         db.session.rollback()
-        print("CHECKOUT ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 # ── MESSAGES ──────────────────────────────────────────────────────────────────
@@ -401,10 +543,8 @@ def send_message():
         db.session.execute(db.text("""
             INSERT INTO MESSAGES (id, sender_id, receiver_id, product_id, message, sent_at, is_read)
             VALUES (messages_seq.NEXTVAL, :sender, :receiver, :product_id, :message, SYSDATE, 0)
-        """), {
-            "sender": sender_id, "receiver": receiver_id,
-            "product_id": product_id, "message": message_text
-        })
+        """), {"sender": sender_id, "receiver": receiver_id,
+               "product_id": product_id, "message": message_text})
         db.session.commit()
         sender_name = db.session.execute(
             db.text("SELECT name FROM USERS WHERE id = :id"), {"id": sender_id}
@@ -413,7 +553,6 @@ def send_message():
         return jsonify({"message": "Message sent"}), 201
     except Exception as e:
         db.session.rollback()
-        print("MESSAGE ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 @app.route("/api/messages", methods=["GET"])
@@ -431,17 +570,11 @@ def get_messages():
                OR (sender_id = :receiver AND receiver_id = :sender)
             ORDER BY sent_at ASC
         """), {"sender": sender, "receiver": receiver})
-        messages = []
-        for row in result:
-            messages.append({
-                "sender_id":    row[0],
-                "receiver_id":  row[1],
-                "message_text": row[2],
-                "sent_at":      str(row[3])
-            })
-        return jsonify(messages)
+        return jsonify([{
+            "sender_id": r[0], "receiver_id": r[1],
+            "message_text": r[2], "sent_at": str(r[3])
+        } for r in result])
     except Exception as e:
-        print("GET MESSAGES ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 @app.route("/api/messages/mark-read", methods=["POST"])
@@ -449,8 +582,6 @@ def mark_messages_read():
     data      = request.get_json()
     reader_id = data.get("reader_id")
     sender_id = data.get("sender_id")
-    if not reader_id or not sender_id:
-        return jsonify({"message": "reader_id and sender_id required"}), 400
     try:
         db.session.execute(db.text("""
             UPDATE MESSAGES SET is_read = 1
@@ -460,7 +591,6 @@ def mark_messages_read():
         return jsonify({"message": "Messages marked as read"})
     except Exception as e:
         db.session.rollback()
-        print("MARK READ ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 @app.route("/api/messages/threads", methods=["GET"])
@@ -492,30 +622,24 @@ def get_threads():
                 WHERE sender_id = :pid AND receiver_id = :uid AND is_read = 0
             """), {"uid": user_id, "pid": partner_id}).scalar()
             threads.append({
-                "seller_id":    partner_id,
-                "seller_name":  row[1],
+                "seller_id":    partner_id, "seller_name": row[1],
                 "last_message": last[0] if last else "",
                 "last_time":    str(last[1]) if last else "",
                 "unread":       unread > 0
             })
         return jsonify(threads)
     except Exception as e:
-        print("GET THREADS ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 @app.route("/api/messages/unread-count", methods=["GET"])
 def unread_count():
     try:
         user_id = int(request.args.get("user_id"))
-    except (TypeError, ValueError):
-        return jsonify({"count": 0})
-    try:
         count = db.session.execute(db.text("""
             SELECT COUNT(*) FROM MESSAGES WHERE receiver_id = :uid AND is_read = 0
         """), {"uid": user_id}).scalar()
         return jsonify({"count": count})
     except Exception as e:
-        print("UNREAD COUNT ERROR:", e)
         return jsonify({"count": 0})
 
 # ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
@@ -529,43 +653,33 @@ def get_notifications():
             WHERE user_id = :user_id ORDER BY created_at DESC
             FETCH FIRST 30 ROWS ONLY
         """), {"user_id": int(user_id)})
-        notifs = []
-        for row in result:
-            notifs.append({
-                "id": row[0], "message": row[1],
-                "is_read": row[2], "created_at": str(row[3])
-            })
-        return jsonify(notifs)
+        return jsonify([{
+            "id": r[0], "message": r[1], "is_read": r[2], "created_at": str(r[3])
+        } for r in result])
     except Exception as e:
-        print("GET NOTIF ERROR:", e)
         return jsonify([])
 
 @app.route("/api/notifications/read", methods=["POST"])
 def mark_notifications_read():
     user_id = request.get_json().get("user_id")
     try:
-        db.session.execute(db.text(
-            "UPDATE NOTIFICATIONS SET is_read=1 WHERE user_id=:uid"
-        ), {"uid": user_id})
+        db.session.execute(db.text("UPDATE NOTIFICATIONS SET is_read=1 WHERE user_id=:uid"), {"uid": user_id})
         db.session.commit()
         return jsonify({"message": "Marked as read"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": "Server error"}), 500
 
-# ── SELLER PAYMENT ─────────────────────────────────────────────────────────────
+# ── SELLER PAYMENT ────────────────────────────────────────────────────────────
 
 @app.route("/api/users/<int:user_id>/payment", methods=["GET"])
 def get_seller_payment(user_id):
     try:
-        res = db.session.execute(db.text("""
-            SELECT gcash_number, bank_details FROM USERS WHERE id = :id
-        """), {"id": user_id}).fetchone()
-        if not res:
-            return jsonify({"gcash": None, "bank": None})
-        return jsonify({"gcash": res[0] if res[0] else None, "bank": res[1] if res[1] else None})
-    except Exception as e:
-        print("GET SELLER PAYMENT ERROR:", e)
+        res = db.session.execute(
+            db.text("SELECT gcash_number, bank_details FROM USERS WHERE id = :id"), {"id": user_id}
+        ).fetchone()
+        return jsonify({"gcash": res[0] if res else None, "bank": res[1] if res else None})
+    except:
         return jsonify({"gcash": None, "bank": None})
 
 @app.route("/api/users/<int:user_id>/payment", methods=["PUT"])
@@ -579,27 +693,25 @@ def update_seller_payment(user_id):
         return jsonify({"message": "Payment details updated"})
     except Exception as e:
         db.session.rollback()
-        print("UPDATE PAYMENT ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 # ── ADMIN ──────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/login", methods=["POST"])
 def admin_login():
-    data = request.get_json()
-    if data.get("password") == ADMIN_PASSWORD:
+    if request.get_json().get("password") == ADMIN_PASSWORD:
         return jsonify({"success": True})
     return jsonify({"message": "Wrong password"}), 401
 
 @app.route("/api/admin/stats", methods=["GET"])
 def admin_stats():
     try:
-        users    = db.session.execute(db.text("SELECT COUNT(*) FROM USERS")).scalar()
-        products = db.session.execute(db.text("SELECT COUNT(*) FROM PRODUCTS")).scalar()
-        messages = db.session.execute(db.text("SELECT COUNT(*) FROM MESSAGES")).scalar()
-        cart     = db.session.execute(db.text("SELECT COUNT(*) FROM CART")).scalar()
-        return jsonify({"users": users, "products": products,
-                        "messages": messages, "cart_items": cart})
+        return jsonify({
+            "users":      db.session.execute(db.text("SELECT COUNT(*) FROM USERS")).scalar(),
+            "products":   db.session.execute(db.text("SELECT COUNT(*) FROM PRODUCTS")).scalar(),
+            "messages":   db.session.execute(db.text("SELECT COUNT(*) FROM MESSAGES")).scalar(),
+            "cart_items": db.session.execute(db.text("SELECT COUNT(*) FROM CART")).scalar(),
+        })
     except Exception as e:
         return jsonify({"message": "Server error"}), 500
 
@@ -611,9 +723,8 @@ def admin_users():
             FROM USERS ORDER BY id DESC
         """))
         return jsonify([{
-            "id": r[0], "name": r[1], "email": r[2],
-            "student_id": r[3], "course": r[4],
-            "department": r[5], "year_level": r[6]
+            "id": r[0], "name": r[1], "email": r[2], "student_id": r[3],
+            "course": r[4], "department": r[5], "year_level": r[6]
         } for r in result])
     except Exception as e:
         return jsonify({"message": "Server error"}), 500
@@ -623,17 +734,22 @@ def admin_products():
     try:
         result = db.session.execute(db.text("""
             SELECT p.id, p.title, p.price, p.category, p.status,
-                   p.created_at, u.name AS seller_name, p.image_url
+                   p.created_at, u.name AS seller_name, p.image_url, p.tags
             FROM PRODUCTS p LEFT JOIN USERS u ON p.seller_id = u.id
             ORDER BY p.id DESC
         """))
-        return jsonify([{
-            "id": r[0], "title": r[1], "price": float(r[2]),
-            "category": r[3], "status": r[4],
-            "created_at": str(r[5]) if r[5] else None,
-            "seller_name": r[6],
-            "image_url": f"http://127.0.0.1:5000{r[7]}" if r[7] else None
-        } for r in result])
+        products = []
+        for r in result:
+            images = parse_images(r[7])
+            products.append({
+                "id": r[0], "title": r[1], "price": float(r[2]),
+                "category": r[3], "status": r[4],
+                "created_at": str(r[5]) if r[5] else None,
+                "seller_name": r[6],
+                "image_url": images[0] if images else None,
+                "tags": r[8].split(",") if r[8] else []
+            })
+        return jsonify(products)
     except Exception as e:
         return jsonify({"message": "Server error"}), 500
 
@@ -641,6 +757,7 @@ def admin_products():
 def admin_delete_product(product_id):
     try:
         db.session.execute(db.text("DELETE FROM CART WHERE product_id = :id"), {"id": product_id})
+        db.session.execute(db.text("DELETE FROM PRICE_HISTORY WHERE product_id = :id"), {"id": product_id})
         db.session.execute(db.text("DELETE FROM PRODUCTS WHERE id = :id"), {"id": product_id})
         db.session.commit()
         return jsonify({"message": "Product deleted"})
@@ -667,26 +784,19 @@ def admin_messages():
     try:
         result = db.session.execute(db.text("""
             SELECT m.id, m.sender_id, m.receiver_id, m.message,
-                   m.sent_at, m.is_read,
-                   u1.name AS sender_name, u2.name AS receiver_name
+                   m.sent_at, m.is_read, u1.name, u2.name
             FROM MESSAGES m
             LEFT JOIN USERS u1 ON m.sender_id = u1.id
             LEFT JOIN USERS u2 ON m.receiver_id = u2.id
-            ORDER BY m.sent_at DESC
-            FETCH FIRST 200 ROWS ONLY
+            ORDER BY m.sent_at DESC FETCH FIRST 200 ROWS ONLY
         """))
         return jsonify([{
-            "id":            r[0],
-            "sender_id":     r[1],
-            "receiver_id":   r[2],
-            "message":       r[3],
-            "sent_at":       str(r[4]) if r[4] else None,
-            "is_read":       r[5],
-            "sender_name":   r[6] or str(r[1]),
+            "id": r[0], "sender_id": r[1], "receiver_id": r[2],
+            "message": r[3], "sent_at": str(r[4]) if r[4] else None,
+            "is_read": r[5], "sender_name": r[6] or str(r[1]),
             "receiver_name": r[7] or str(r[2])
         } for r in result])
     except Exception as e:
-        print("ADMIN MESSAGES ERROR:", e)
         return jsonify({"message": "Server error"}), 500
 
 if __name__ == "__main__":
