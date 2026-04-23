@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api'
+
 const apiClient = axios.create({
-  baseURL: 'http://127.0.0.1:5000/api',
+  baseURL: BASE,
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -15,13 +17,25 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   res => res,
-  err => { console.error('API Error:', err.response?.data || err.message); return Promise.reject(err) }
+  err => {
+    console.error('API Error:', err.response?.data || err.message)
+    return Promise.reject(err)
+  }
 )
 
 export default {
   // AUTH
   register: (data) => apiClient.post('/register', data),
   login:    (data) => apiClient.post('/login', data),
+
+  // PUBLIC STATS (real-time homepage)
+  getPublicStats: () => apiClient.get('/stats'),
+
+  // PROFILE PIC
+  uploadProfilePic: (userId, formData) =>
+    apiClient.post(`/users/${userId}/profile-pic`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 
   // PRODUCTS
   getProducts:   (params = {}) => apiClient.get('/products', { params }),
@@ -35,7 +49,7 @@ export default {
   deleteProduct:          (id, uid)  => apiClient.delete(`/products/${id}`, { params: { user_id: uid } }),
 
   // PRICE HISTORY
-  getPriceHistory: (productId) => apiClient.get(`/products/${productId}/price-history`),
+  getPriceHistory: (pid) => apiClient.get(`/products/${pid}/price-history`),
 
   // TAGS
   getAllTags:    ()    => apiClient.get('/tags'),
@@ -49,27 +63,27 @@ export default {
   // CHECKOUT
   checkout: (data) => apiClient.post('/checkout', data),
 
-  // SELLER PAYMENT
+  // PAYMENT
   getSellerPayment:    (sid)       => apiClient.get(`/users/${sid}/payment`),
   updateSellerPayment: (uid, data) => apiClient.put(`/users/${uid}/payment`, data),
 
   // MESSAGES
-  sendMessage:      (data)      => apiClient.post('/messages', data),
-  getMessages:      (uid, pid)  => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
-  getThreads:       (userId)    => apiClient.get('/messages/threads', { params: { user_id: userId } }),
-  getUnreadCount:   (userId)    => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
-  markMessagesRead: (data)      => apiClient.post('/messages/mark-read', data).catch(() => {}),
+  sendMessage:      (data)     => apiClient.post('/messages', data),
+  getMessages:      (uid, pid) => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
+  getThreads:       (userId)   => apiClient.get('/messages/threads', { params: { user_id: userId } }),
+  getUnreadCount:   (userId)   => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
+  markMessagesRead: (data)     => apiClient.post('/messages/mark-read', data).catch(() => {}),
 
   // NOTIFICATIONS
   getNotifications:      (userId) => apiClient.get('/notifications', { params: { user_id: userId } }),
   markNotificationsRead: (userId) => apiClient.post('/notifications/read', { user_id: userId }),
 
   // ADMIN
-  adminLogin:         (password) => apiClient.post('/admin/login', { password }),
-  adminStats:         ()         => apiClient.get('/admin/stats'),
-  adminProducts:      ()         => apiClient.get('/admin/products'),
-  adminUsers:         ()         => apiClient.get('/admin/users'),
-  adminMessages:      ()         => apiClient.get('/admin/messages'),
-  adminDeleteProduct: (id)       => apiClient.delete(`/admin/products/${id}`),
-  adminDeleteUser:    (id)       => apiClient.delete(`/admin/users/${id}`),
+  adminLogin:         (pw)  => apiClient.post('/admin/login', { password: pw }),
+  adminStats:         ()    => apiClient.get('/admin/stats'),
+  adminProducts:      ()    => apiClient.get('/admin/products'),
+  adminUsers:         ()    => apiClient.get('/admin/users'),
+  adminMessages:      ()    => apiClient.get('/admin/messages'),
+  adminDeleteProduct: (id)  => apiClient.delete(`/admin/products/${id}`),
+  adminDeleteUser:    (id)  => apiClient.delete(`/admin/users/${id}`),
 }
