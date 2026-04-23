@@ -24,16 +24,20 @@ const routes = [
   { path: '/messages',         name: 'Messages',       component: MessagesPage },
   { path: '/chat',             redirect: '/messages' },
   { path: '/admin',            name: 'Admin',          component: AdminView },
-  { path: '/:pathMatch(.*)*',  redirect: '/' }
+  { path: '/:pathMatch(.*)*',  redirect: '/' },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })
 
+// Guard protected routes
 router.beforeEach((to, from, next) => {
   const protectedRoutes = ['Dashboard', 'Cart', 'Profile', 'AddProduct', 'Messages']
   const user = localStorage.getItem('user')
-  if (protectedRoutes.includes(to.name) && !user) next('/auth')
-  else next()
+  if (protectedRoutes.includes(to.name) && !user) {
+    next('/auth')
+  } else {
+    next()
+  }
 })
 
 export default router

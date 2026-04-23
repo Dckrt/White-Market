@@ -1,9 +1,8 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api'
-
+// ── IMPORTANT: Must end with /api ─────────────────────────────────────────
 const apiClient = axios.create({
-  baseURL: BASE,
+  baseURL: 'http://127.0.0.1:5000/api',
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -28,7 +27,7 @@ export default {
   register: (data) => apiClient.post('/register', data),
   login:    (data) => apiClient.post('/login', data),
 
-  // PUBLIC STATS (real-time homepage)
+  // PUBLIC STATS
   getPublicStats: () => apiClient.get('/stats'),
 
   // PROFILE PIC
@@ -45,8 +44,10 @@ export default {
     ? apiClient.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } })
     : apiClient.post('/products', data),
   updateProduct:          (id, data) => apiClient.put(`/products/${id}`, data),
-  updateProductWithImage: (id, fd)   => apiClient.put(`/products/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteProduct:          (id, uid)  => apiClient.delete(`/products/${id}`, { params: { user_id: uid } }),
+  updateProductWithImage: (id, fd)   => apiClient.put(`/products/${id}`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteProduct: (id, uid) => apiClient.delete(`/products/${id}`, { params: { user_id: uid } }),
 
   // PRICE HISTORY
   getPriceHistory: (pid) => apiClient.get(`/products/${pid}/price-history`),
@@ -69,7 +70,9 @@ export default {
 
   // MESSAGES
   sendMessage:      (data)     => apiClient.post('/messages', data),
-  getMessages:      (uid, pid) => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
+  getMessages:      (uid, pid) => apiClient.get('/messages', {
+    params: { sender_id: Number(uid), receiver_id: Number(pid) }
+  }),
   getThreads:       (userId)   => apiClient.get('/messages/threads', { params: { user_id: userId } }),
   getUnreadCount:   (userId)   => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
   markMessagesRead: (data)     => apiClient.post('/messages/mark-read', data).catch(() => {}),
