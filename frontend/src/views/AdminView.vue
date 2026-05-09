@@ -5,13 +5,15 @@
       <!-- Sidebar -->
       <aside class="wm-admin-aside">
         <div class="wm-admin-aside__brand">
-          <div class="wm-admin-aside__mark">
-            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-              <path d="M10 14h16l-2 12H12L10 14z" fill="#FFD700" opacity="0.2"/>
-              <path d="M10 14h16l-2 12H12L10 14z" stroke="#FFD700" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M14 14v-2a4 4 0 018 0v2" stroke="#FFD700" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
+          <!-- Proper logo SVG -->
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+            <rect width="36" height="36" rx="9" fill="#FFD700"/>
+            <path d="M10 15h16l-2 11H12L10 15z" fill="#003366" fill-opacity="0.18"/>
+            <path d="M10 15h16l-2 11H12L10 15z" stroke="#003366" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M14 15v-2a4 4 0 018 0v2" stroke="#003366" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="15.5" cy="21" r="1" fill="#003366"/>
+            <circle cx="20.5" cy="21" r="1" fill="#003366"/>
+          </svg>
           <div>
             <p class="wm-admin-aside__name">AdnuMarket</p>
             <p class="wm-admin-aside__role">Admin Panel</p>
@@ -59,10 +61,8 @@
               </div>
             </div>
           </div>
-          <div style="margin-top:28px">
-            <h2 class="wm-admin-section__subtitle">Recent Listings</h2>
-          </div>
-          <div class="wm-recent-list" style="margin-top:12px">
+          <h2 class="wm-admin-section__subtitle" style="margin-top:28px;margin-bottom:12px">Recent Listings</h2>
+          <div class="wm-recent-list">
             <p v-if="!recentProds.length" class="wm-admin-empty">No listings yet.</p>
             <div v-for="p in recentProds.slice(0,8)" :key="p.id" class="wm-recent-item">
               <img :src="p.image_url||''" class="wm-recent-item__img" alt="" @error="e=>e.target.style.opacity='.1'" />
@@ -213,11 +213,8 @@
       </main>
     </div>
 
-    <!-- Toast -->
     <Transition name="wm-toast">
-      <div v-if="toast.show" :class="['wm-admin-toast',`wm-admin-toast--${toast.type}`]">
-        {{ toast.text }}
-      </div>
+      <div v-if="toast.show" :class="['wm-admin-toast',`wm-admin-toast--${toast.type}`]">{{ toast.text }}</div>
     </Transition>
   </div>
 </template>
@@ -226,12 +223,10 @@
 import { ref, computed, onMounted, h } from 'vue'
 import api from '@/services/api'
 
-// ── Icon components ──────────────────────────────────────────────────────────
 const IconGrid  = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8'},[h('rect',{x:3,y:3,width:7,height:7}),h('rect',{x:14,y:3,width:7,height:7}),h('rect',{x:14,y:14,width:7,height:7}),h('rect',{x:3,y:14,width:7,height:7})]) }
 const IconBox   = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('path',{d:'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'}),h('polyline',{points:'3.27 6.96 12 12.01 20.73 6.96'}),h('line',{x1:12,y1:'22.08',x2:12,y2:12})]) }
 const IconUsers = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('path',{d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2'}),h('circle',{cx:9,cy:7,r:4}),h('path',{d:'M23 21v-2a4 4 0 00-3-3.87'}),h('path',{d:'M16 3.13a4 4 0 010 7.75'})]) }
 const IconMsg   = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('path',{d:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'})]) }
-const IconCart  = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('circle',{cx:9,cy:21,r:1}),h('circle',{cx:20,cy:21,r:1}),h('path',{d:'M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6'})]) }
 const IconOrder = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('path',{d:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2'}),h('rect',{x:9,y:3,width:6,height:4,rx:2}),h('path',{d:'M9 12h6M9 16h4'})]) }
 
 const tabs = [
@@ -248,7 +243,6 @@ const statCards = [
   { key:'messages', label:'Messages Sent',    icon: IconMsg,   bg:'#fce8ff', color:'#7c3aed' },
 ]
 
-// ── State ────────────────────────────────────────────────────────────────────
 const activeTab   = ref('overview')
 const stats       = ref({})
 const recentProds = ref([])
@@ -258,42 +252,30 @@ const prodSearch  = ref(''), userSearch = ref(''), msgSearch = ref(''), orderSea
 const toast       = ref({ show: false, text: '', type: '' })
 let toastTimer    = null
 
-// ── Computed ─────────────────────────────────────────────────────────────────
-const filteredProds  = computed(() => { const q = prodSearch.value.toLowerCase();  return q ? allProds.value.filter(p  => `${p.title} ${p.seller_name} ${p.category}`.toLowerCase().includes(q))  : allProds.value  })
-const filteredUsers  = computed(() => { const q = userSearch.value.toLowerCase();  return q ? allUsers.value.filter(u  => `${u.name} ${u.email} ${u.student_id}`.toLowerCase().includes(q))         : allUsers.value  })
-const filteredMsgs   = computed(() => { const q = msgSearch.value.toLowerCase();   return q ? allMsgs.value.filter(m   => `${m.message} ${m.sender_name} ${m.receiver_name}`.toLowerCase().includes(q)): allMsgs.value  })
-const filteredOrders = computed(() => { const q = orderSearch.value.toLowerCase(); return q ? allOrders.value.filter(o => `${o.product_title} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q)): allOrders.value })
+const filteredProds  = computed(() => { const q = prodSearch.value.toLowerCase();  return q ? allProds.value.filter(p  => `${p.title} ${p.seller_name} ${p.category}`.toLowerCase().includes(q)) : allProds.value })
+const filteredUsers  = computed(() => { const q = userSearch.value.toLowerCase();  return q ? allUsers.value.filter(u  => `${u.name} ${u.email} ${u.student_id}`.toLowerCase().includes(q)) : allUsers.value })
+const filteredMsgs   = computed(() => { const q = msgSearch.value.toLowerCase();   return q ? allMsgs.value.filter(m   => `${m.message} ${m.sender_name} ${m.receiver_name}`.toLowerCase().includes(q)) : allMsgs.value })
+const filteredOrders = computed(() => { const q = orderSearch.value.toLowerCase(); return q ? allOrders.value.filter(o => `${o.product_title} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q)) : allOrders.value })
 
-// ── Load ─────────────────────────────────────────────────────────────────────
 const loadAll = async () => {
-  try { const r = await api.adminStats();    stats.value      = r.data } catch {}
-  try { const r = await api.adminProducts(); recentProds.value = r.data } catch {}
+  try { stats.value      = (await api.adminStats()).data    } catch {}
+  try { recentProds.value = (await api.adminProducts()).data } catch {}
 }
-
 const switchTab = (k) => {
   activeTab.value = k
-  if (k==='products' && !allProds.value.length)   loadProds()
-  if (k==='users'    && !allUsers.value.length)    loadUsers()
-  if (k==='messages' && !allMsgs.value.length)     loadMsgsTab()
-  if (k==='orders'   && !allOrders.value.length)   loadOrders()
+  if (k==='products' && !allProds.value.length)  loadProds()
+  if (k==='users'    && !allUsers.value.length)   loadUsers()
+  if (k==='messages' && !allMsgs.value.length)    loadMsgsTab()
+  if (k==='orders'   && !allOrders.value.length)  loadOrders()
 }
+const loadProds   = async () => { loadingProds.value  = true; try { allProds.value  = (await api.adminProducts()).data } catch { showToast('Failed','error') } finally { loadingProds.value  = false } }
+const loadUsers   = async () => { loadingUsers.value  = true; try { allUsers.value  = (await api.adminUsers()).data    } catch { showToast('Failed','error') } finally { loadingUsers.value  = false } }
+const loadMsgsTab = async () => { loadingMsgs.value   = true; try { allMsgs.value   = (await api.adminMessages()).data } catch { showToast('Failed','error') } finally { loadingMsgs.value   = false } }
+const loadOrders  = async () => { loadingOrders.value = true; try { allOrders.value = (await api.adminOrders()).data   } catch { showToast('Failed','error') } finally { loadingOrders.value = false } }
 
-const loadProds  = async () => { loadingProds.value  = true; try { allProds.value  = (await api.adminProducts()).data } catch { showToast('Failed','error') } finally { loadingProds.value  = false } }
-const loadUsers  = async () => { loadingUsers.value  = true; try { allUsers.value  = (await api.adminUsers()).data    } catch { showToast('Failed','error') } finally { loadingUsers.value  = false } }
-const loadMsgsTab= async () => { loadingMsgs.value   = true; try { allMsgs.value   = (await api.adminMessages()).data } catch { showToast('Failed','error') } finally { loadingMsgs.value   = false } }
-const loadOrders = async () => { loadingOrders.value = true; try { allOrders.value = (await api.adminOrders()).data   } catch { showToast('Failed','error') } finally { loadingOrders.value = false } }
+const delProd = async (p) => { if (!confirm(`Delete "${p.title}"?`)) return; try { await api.adminDeleteProduct(p.id); allProds.value = allProds.value.filter(x=>x.id!==p.id); recentProds.value = recentProds.value.filter(x=>x.id!==p.id); showToast('Deleted','success') } catch { showToast('Failed','error') } }
+const delUser = async (u) => { if (!confirm(`Delete "${u.name}"? This removes all their data.`)) return; try { await api.adminDeleteUser(u.id); allUsers.value = allUsers.value.filter(x=>x.id!==u.id); showToast('Deleted','success') } catch { showToast('Failed','error') } }
 
-// ── Delete ────────────────────────────────────────────────────────────────────
-const delProd = async (p) => {
-  if (!confirm(`Delete "${p.title}"?`)) return
-  try { await api.adminDeleteProduct(p.id); allProds.value = allProds.value.filter(x=>x.id!==p.id); recentProds.value = recentProds.value.filter(x=>x.id!==p.id); showToast('Deleted','success') } catch { showToast('Failed','error') }
-}
-const delUser = async (u) => {
-  if (!confirm(`Delete "${u.name}"? This removes all their data.`)) return
-  try { await api.adminDeleteUser(u.id); allUsers.value = allUsers.value.filter(x=>x.id!==u.id); showToast('Deleted','success') } catch { showToast('Failed','error') }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const showToast = (text, type='') => { clearTimeout(toastTimer); toast.value = { show:true, text, type }; toastTimer = setTimeout(() => toast.value.show = false, 3000) }
 const fmtDate   = (d) => { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) } catch { return d } }
 const fmtPrice  = (v) => Number(v).toLocaleString('en-PH',{minimumFractionDigits:2})
@@ -305,10 +287,8 @@ onMounted(loadAll)
 .wm-admin { min-height:100vh; font-family:'Plus Jakarta Sans','Inter',sans-serif; }
 .wm-admin-dash { display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
 
-/* ASIDE */
 .wm-admin-aside { background:#003366; display:flex; flex-direction:column; }
 .wm-admin-aside__brand { display:flex; align-items:center; gap:12px; padding:20px; border-bottom:1px solid rgba(255,255,255,0.08); }
-.wm-admin-aside__mark { width:38px; height:38px; background:#FFD700; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .wm-admin-aside__name { font-size:0.95rem; font-weight:800; color:#fff; margin:0 0 2px; }
 .wm-admin-aside__role { font-size:0.7rem; color:rgba(255,255,255,0.5); margin:0; text-transform:uppercase; letter-spacing:0.5px; }
 
@@ -324,7 +304,6 @@ onMounted(loadAll)
 .wm-admin-site-link { font-size:0.78rem; color:rgba(255,255,255,0.45); text-decoration:none; display:flex; align-items:center; gap:5px; justify-content:center; }
 .wm-admin-site-link:hover { color:rgba(255,255,255,0.8); }
 
-/* MAIN */
 .wm-admin-main { background:#f4f7fb; overflow-y:auto; }
 .wm-admin-section { padding:28px 32px 48px; }
 .wm-admin-section__head { margin-bottom:20px; }
