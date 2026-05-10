@@ -622,64 +622,74 @@ def get_threads():
         uid = int(request.args.get("user_id"))
     except (TypeError, ValueError):
         return jsonify([])
+ 
     try:
-        # Get all unique conversation partners for this user
-        # Using UNION to get both sent and received
-        partner_rows = db.session.execute(db.text("""
+        # Get all unique partner IDs (exclude self)
+        # Oracle requires named bind params repeated, not reused
+        sql = """
             SELECT DISTINCT partner_id FROM (
                 SELECT receiver_id AS partner_id
                 FROM MESSAGES
-                WHERE sender_id = :uid1
+                WHERE sender_id = :u1
+                  AND receiver_id != :u2
                 UNION
                 SELECT sender_id AS partner_id
                 FROM MESSAGES
-                WHERE receiver_id = :uid2
+                WHERE receiver_id = :u3
+                  AND sender_id != :u4
             )
-        """), {"uid1": uid, "uid2": uid}).fetchall()
+            ORDER BY partner_id
+        """
+        partner_rows = db.session.execute(
+            db.text(sql),
+            {"u1": uid, "u2": uid, "u3": uid, "u4": uid}
+        ).fetchall()
  
         threads = []
         for row in partner_rows:
             pid = row[0]
-            if pid is None:
+            if not pid:
                 continue
  
-            # Get partner name
-            partner = db.session.execute(db.text(
-                "SELECT id, name FROM USERS WHERE id = :pid"
-            ), {"pid": pid}).fetchone()
+            # Get partner info
+            partner = db.session.execute(
+                db.text("SELECT id, name FROM USERS WHERE id = :pid"),
+                {"pid": int(pid)}
+            ).fetchone()
             if not partner:
                 continue
  
-            # Get last message
+            # Get last message between uid and pid
             last = db.session.execute(db.text("""
                 SELECT message, sent_at FROM MESSAGES
-                WHERE (sender_id = :u AND receiver_id = :p)
+                WHERE (sender_id = :u1 AND receiver_id = :p1)
                    OR (sender_id = :p2 AND receiver_id = :u2)
                 ORDER BY sent_at DESC
                 FETCH FIRST 1 ROWS ONLY
-            """), {"u": uid, "p": pid, "p2": pid, "u2": uid}).fetchone()
+            """), {"u1": uid, "p1": int(pid), "p2": int(pid), "u2": uid}).fetchone()
  
-            # Count unread
+            # Count unread messages FROM pid TO uid
             unread = db.session.execute(db.text("""
                 SELECT COUNT(*) FROM MESSAGES
                 WHERE sender_id = :p AND receiver_id = :u AND is_read = 0
-            """), {"u": uid, "p": pid}).scalar()
+            """), {"p": int(pid), "u": uid}).scalar()
  
             threads.append({
-                "seller_id":    pid,
+                "seller_id":    int(pid),
                 "seller_name":  partner[1],
                 "last_message": last[0] if last else "",
                 "last_time":    str(last[1]) if last else "",
                 "unread":       int(unread) > 0,
             })
  
-        # Sort by last_time descending
+        # Sort by most recent message
         threads.sort(key=lambda x: x["last_time"], reverse=True)
         return jsonify(threads)
  
     except Exception as e:
         traceback.print_exc()
         return jsonify([])
+
 
 
 @app.route("/api/messages/unread-count")
