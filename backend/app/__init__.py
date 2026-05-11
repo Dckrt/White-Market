@@ -16,6 +16,36 @@ db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 CORS(app)
 
+with app.app_context():
+    db.session.execute(db.text("""
+        CREATE TABLE IF NOT EXISTS USERS (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            student_id_number TEXT,
+            course TEXT,
+            year_level TEXT,
+            department TEXT
+        )
+    """))
+
+    db.session.execute(db.text("""
+        CREATE TABLE IF NOT EXISTS PRODUCTS (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            description TEXT,
+            price REAL,
+            category TEXT,
+            pickup_location TEXT,
+            seller_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT
+        )
+    """))
+
+    db.session.commit()
+
 # ---------------- HOME ---------------- #
 
 @app.route("/")
@@ -57,7 +87,7 @@ def register():
                 student_id_number, course, year_level, department
             )
             VALUES (
-                users_seq.NEXTVAL,
+                NULL,
                 :name,
                 :email,
                 :pw,
@@ -154,14 +184,14 @@ def create_product():
                 category, pickup_location, seller_id, created_at, status
             )
             VALUES (
-                products_seq.NEXTVAL,
+                NULL,
                 :title,
                 :description,
                 :price,
                 :category,
                 :pickup_location,
                 :seller_id,
-                SYSDATE,
+                CURRENT_TIMESTAMP,
                 'Available'
             )
         """), {
