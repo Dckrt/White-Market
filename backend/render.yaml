@@ -4,3 +4,12 @@ services:
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:LEcSHOxrZLBfxwyTGAzKNgljwqMExDZV@postgres.railway.internal:5432/railway
+      - key: SECRET_KEY
+        value: whitemarket_secret_2024
+      - key: ADMIN_PASSWORD
+        value: adnu_admin_2024
+      - key: FLASK_DEBUG
+        value: "0"

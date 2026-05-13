@@ -1,50 +1,27 @@
-
+import oracledb
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 
+# --- ORACLE INIT ---
+try:
+    oracledb.init_oracle_client(
+        lib_dir=r"C:\Users\Lito\Downloads\instantclient-basic-windows.x64-23.26.1.0.0\instantclient_23_26"
+    )
+except Exception as e:
+    print(f"Oracle Error: {e}")
 
 app = Flask(__name__)
 
 # --- CONFIG ---
 app.config["SECRET_KEY"] = "secret"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///adnumarket.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "oracle+oracledb://dotado:202400926@localhost:1521/?service_name=XE"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 CORS(app)
-
-with app.app_context():
-    db.session.execute(db.text("""
-        CREATE TABLE IF NOT EXISTS USERS (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            email TEXT UNIQUE,
-            password_hash TEXT,
-            student_id_number TEXT,
-            course TEXT,
-            year_level TEXT,
-            department TEXT
-        )
-    """))
-
-    db.session.execute(db.text("""
-        CREATE TABLE IF NOT EXISTS PRODUCTS (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            description TEXT,
-            price REAL,
-            category TEXT,
-            pickup_location TEXT,
-            seller_id INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            status TEXT
-        )
-    """))
-
-    db.session.commit()
 
 # ---------------- HOME ---------------- #
 
@@ -87,7 +64,7 @@ def register():
                 student_id_number, course, year_level, department
             )
             VALUES (
-                NULL,
+                users_seq.NEXTVAL,
                 :name,
                 :email,
                 :pw,
@@ -184,14 +161,14 @@ def create_product():
                 category, pickup_location, seller_id, created_at, status
             )
             VALUES (
-                NULL,
+                products_seq.NEXTVAL,
                 :title,
                 :description,
                 :price,
                 :category,
                 :pickup_location,
                 :seller_id,
-                CURRENT_TIMESTAMP,
+                SYSDATE,
                 'Available'
             )
         """), {

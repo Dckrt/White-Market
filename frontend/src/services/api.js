@@ -1,96 +1,69 @@
 import axios from 'axios'
 
-// Works for both localhost and deployed (Vercel -> Railway/Render)
+// ── BASE URL ───────────────────────────────────────────────────────────────
+// LOCAL:  leave VITE_API_URL unset → uses localhost:5000
+// DEPLOY: set VITE_API_URL=https://your-app.onrender.com/api in Vercel env vars
 const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api'
 
-const apiClient = axios.create({
-  baseURL: BASE,
-  headers: { 'Content-Type': 'application/json' }
-})
-
-apiClient.interceptors.request.use((config) => {
-  try {
-    const user = JSON.parse(localStorage.getItem('user'))
-    if (user?.user_id) config.headers['X-User-ID'] = user.user_id
-  } catch {}
-  return config
-})
-
-apiClient.interceptors.response.use(
-  res => res,
-  err => {
-    console.error('API Error:', err.response?.data || err.message)
-    return Promise.reject(err)
-  }
-)
+const api = axios.create({ baseURL: BASE })
 
 export default {
-  // AUTH
-  register: (data) => apiClient.post('/register', data),
-  login:    (data) => apiClient.post('/login', data),
+  // Auth
+  register:      (data) => api.post('/register', data),
+  login:         (data) => api.post('/login', data),
+  googleAuth:    (data) => api.post('/auth/google', data),
+  uploadProfilePic: (uid, fd) => api.post(`/users/${uid}/profile-pic`, fd),
 
-  // PUBLIC STATS
-  getPublicStats: () => apiClient.get('/stats'),
+  // Stats
+  getStats: () => api.get('/stats'),
 
-  // PROFILE PIC
-  uploadProfilePic: (userId, formData) =>
-    apiClient.post(`/users/${userId}/profile-pic`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+  // Products
+  getProducts:    (params) => api.get('/products', { params }),
+  getProduct:     (id)     => api.get(`/products/${id}`),
+  getMyProducts:  (sid)    => api.get('/products', { params: { seller_id: sid } }),
+  createProduct:  (fd)     => api.post('/products', fd),
+  updateProduct:  (id, data) => api.put(`/products/${id}`, data),
+  updateProductWithImage: (id, fd) => api.put(`/products/${id}`, fd),
+  deleteProduct:  (id, uid) => api.delete(`/products/${id}`, { params: { user_id: uid } }),
+  getPriceHistory: (id)    => api.get(`/products/${id}/price-history`),
+  getTags:         ()      => api.get('/tags'),
+  compareByTag:    (tag)   => api.get('/products/compare', { params: { tag } }),
 
-  // PRODUCTS
-  getProducts:   (params = {}) => apiClient.get('/products', { params }),
-  getMyProducts: (userId)      => apiClient.get('/products', { params: { seller_id: userId } }),
-  getProduct:    (id)          => apiClient.get(`/products/${id}`),
-  createProduct: (data)        => data instanceof FormData
-    ? apiClient.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } })
-    : apiClient.post('/products', data),
-  updateProduct:          (id, data) => apiClient.put(`/products/${id}`, data),
-  updateProductWithImage: (id, fd)   => apiClient.put(`/products/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteProduct:          (id, uid)  => apiClient.delete(`/products/${id}`, { params: { user_id: uid } }),
+  // Cart
+  getCart:       (uid)   => api.get('/cart', { params: { user_id: uid } }),
+  addToCart:     (data)  => api.post('/cart', data),
+  removeFromCart:(id)    => api.delete(`/cart/${id}`),
 
-  // PRICE HISTORY
-  getPriceHistory: (pid) => apiClient.get(`/products/${pid}/price-history`),
+  // Checkout & Orders
+  checkout:        (data) => api.post('/checkout', data),
+  getOrders:       (uid)  => api.get('/orders', { params: { buyer_id: uid } }),
+  getSellerOrders: (uid)  => api.get('/orders/seller', { params: { seller_id: uid } }),
 
-  // TAGS
-  getAllTags:    ()    => apiClient.get('/tags'),
-  compareByTag: (tag) => apiClient.get('/products/compare', { params: { tag } }),
+  // Messages
+  sendMessage:       (data)  => api.post('/messages', data),
+  getMessages:       (s, r)  => api.get('/messages', { params: { sender_id: s, receiver_id: r } }),
+  getThreads:        (uid)   => api.get('/messages/threads', { params: { user_id: uid } }),
+  markMessagesRead:  (data)  => api.post('/messages/mark-read', data),
+  getUnreadCount:    (uid)   => api.get('/messages/unread-count', { params: { user_id: uid } }),
 
-  // CART
-  addToCart:      (data)   => apiClient.post('/cart', data),
-  getCart:        (userId) => apiClient.get('/cart', { params: { user_id: userId } }),
-  removeFromCart: (id)     => apiClient.delete(`/cart/${id}`),
+  // Notifications
+  getNotifications:     (uid) => api.get('/notifications', { params: { user_id: uid } }),
+  markNotificationsRead:(uid) => api.post('/notifications/read', { user_id: uid }),
 
-  // CHECKOUT
-  checkout: (data) => apiClient.post('/checkout', data),
+  // Payment
+  getSellerPayment:  (uid)  => api.get(`/users/${uid}/payment`),
+  updatePayment:     (uid, data) => api.put(`/users/${uid}/payment`, data),
 
-  // ORDERS — buyer sees their purchases, seller sees received orders
-  getMyOrders:     (buyerId)  => apiClient.get('/orders', { params: { buyer_id: buyerId } }),
-  getSellerOrders: (sellerId) => apiClient.get('/orders/seller', { params: { seller_id: sellerId } }),
-  updateOrderStatus: (orderId, status) => apiClient.put(`/orders/${orderId}/status`, { status }),
-
-  // PAYMENT
-  getSellerPayment:    (sid)       => apiClient.get(`/users/${sid}/payment`),
-  updateSellerPayment: (uid, data) => apiClient.put(`/users/${uid}/payment`, data),
-
-  // MESSAGES
-  sendMessage:      (data)     => apiClient.post('/messages', data),
-  getMessages:      (uid, pid) => apiClient.get('/messages', { params: { sender_id: Number(uid), receiver_id: Number(pid) } }),
-  getThreads:       (userId)   => apiClient.get('/messages/threads', { params: { user_id: userId } }),
-  getUnreadCount:   (userId)   => apiClient.get('/messages/unread-count', { params: { user_id: userId } }),
-  markMessagesRead: (data)     => apiClient.post('/messages/mark-read', data).catch(() => {}),
-
-  // NOTIFICATIONS
-  getNotifications:      (userId) => apiClient.get('/notifications', { params: { user_id: userId } }),
-  markNotificationsRead: (userId) => apiClient.post('/notifications/read', { user_id: userId }),
-
-  // ADMIN
-  adminLogin:         (pw)  => apiClient.post('/admin/login', { password: pw }),
-  adminStats:         ()    => apiClient.get('/admin/stats'),
-  adminProducts:      ()    => apiClient.get('/admin/products'),
-  adminUsers:         ()    => apiClient.get('/admin/users'),
-  adminOrders:        ()    => apiClient.get('/admin/orders'),
-  adminMessages:      ()    => apiClient.get('/admin/messages'),
-  adminDeleteProduct: (id)  => apiClient.delete(`/admin/products/${id}`),
-  adminDeleteUser:    (id)  => apiClient.delete(`/admin/users/${id}`),
+  // Admin
+  adminLogin:         (pw)   => api.post('/admin/login', { password: pw }),
+  adminStats:         ()     => api.get('/admin/stats'),
+  adminUsers:         ()     => api.get('/admin/users'),
+  adminCreateUser:    (data) => api.post('/admin/users', data),
+  adminUpdateUser:    (id, data) => api.put(`/admin/users/${id}`, data),
+  adminDeleteUser:    (id)   => api.delete(`/admin/users/${id}`),
+  adminProducts:      ()     => api.get('/admin/products'),
+  adminCreateProduct: (data) => api.post('/admin/products', data),
+  adminDeleteProduct: (id)   => api.delete(`/admin/products/${id}`),
+  adminOrders:        ()     => api.get('/admin/orders'),
+  adminMessages:      ()     => api.get('/admin/messages'),
 }
