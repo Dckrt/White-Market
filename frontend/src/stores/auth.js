@@ -4,23 +4,22 @@ import { ref } from 'vue'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
 
-  const loadFromStorage = () => {
+  function loadFromStorage() {
     try {
-      const saved = localStorage.getItem('user')
-      if (saved) user.value = JSON.parse(saved)
-    } catch {}
+      const raw = localStorage.getItem('user')
+      if (raw) user.value = JSON.parse(raw)
+    } catch { user.value = null }
   }
 
-  const setUser = (u) => {
-    user.value = u
-    if (u) localStorage.setItem('user', JSON.stringify(u))
-    else localStorage.removeItem('user')
+  function setUser(data) {
+    user.value = data
+    localStorage.setItem('user', JSON.stringify(data))
   }
 
-  const logout = () => {
+  function logout() {
     user.value = null
     localStorage.removeItem('user')
   }
 
-  return { user, setUser, loadFromStorage, logout }
+  return { user, loadFromStorage, setUser, logout }
 })

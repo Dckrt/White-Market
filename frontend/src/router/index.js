@@ -1,62 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-// Lazy load all views
-const AuthPage       = () => import('@/views/AuthPage.vue')
-const HomeView       = () => import('@/views/HomeView.vue')
-const Marketplace    = () => import('@/views/Marketplace.vue')
-const ProductDetails = () => import('@/views/ProductDetails.vue')
-const Dashboard      = () => import('@/views/Dashboard.vue')
-const CartView       = () => import('@/views/CartView.vue')
-const Profile        = () => import('@/views/Profile.vue')
-const AddProduct     = () => import('@/views/AddProduct.vue')
-const MessagesPage   = () => import('@/views/MessagesPage.vue')
-const AdminView      = () => import('@/views/AdminView.vue')
-const OrdersView     = () => import('@/views/OrdersView.vue')
+import { useAuthStore } from '@/stores/auth'
 
 const routes = [
-  // ── Public ──────────────────────────────────────────────────────
-  { path: '/auth', name: 'Auth', component: AuthPage },
-  { path: '/',     name: 'Home', component: HomeView },
+  { path: '/',             component: () => import('@/views/HomeView.vue') },
+  { path: '/auth',         component: () => import('@/views/AuthPage.vue') },
 
-  // ── IMPORTANT: /products/:id MUST come BEFORE /products ─────────
-  // If /products is first, Vue Router matches it and ignores /:id
-  { path: '/products/:id', name: 'ProductDetails', component: ProductDetails, props: true },
-  { path: '/products',     name: 'Marketplace',    component: Marketplace },
+  // ⚠️ IMPORTANT: /products/:id MUST come BEFORE /products
+  { path: '/products/:id', component: () => import('@/views/ProductDetails.vue') },
+  { path: '/products',     component: () => import('@/views/Marketplace.vue') },
 
-  // ── Protected ───────────────────────────────────────────────────
-  { path: '/cart',        name: 'Cart',       component: CartView    },
-  { path: '/profile',     name: 'Profile',    component: Profile     },
-  { path: '/dashboard',   name: 'Dashboard',  component: Dashboard   },
-  { path: '/add-product', name: 'AddProduct', component: AddProduct  },
-  { path: '/messages',    name: 'Messages',   component: MessagesPage },
-  { path: '/orders',      name: 'Orders',     component: OrdersView  },
-
-  // ── Admin (no auth guard — dashboard agad) ───────────────────────
-  { path: '/admin', name: 'Admin', component: AdminView },
-
-  // ── Catch all ───────────────────────────────────────────────────
+  { path: '/dashboard',    component: () => import('@/views/Dashboard.vue'),   meta: { requiresAuth: true } },
+  { path: '/add-product',  component: () => import('@/views/AddProduct.vue'),  meta: { requiresAuth: true } },
+  { path: '/cart',         component: () => import('@/views/CartView.vue'),    meta: { requiresAuth: true } },
+  { path: '/messages',     component: () => import('@/views/MessagesPage.vue'), meta: { requiresAuth: true } },
+  { path: '/profile',      component: () => import('@/views/Profile.vue'),     meta: { requiresAuth: true } },
+  { path: '/orders',       component: () => import('@/views/OrdersView.vue'),  meta: { requiresAuth: true } },
+  { path: '/admin',        component: () => import('@/views/AdminView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  // Scroll to top on every navigation
-  scrollBehavior() {
-    return { top: 0 }
-  }
+  scrollBehavior: () => ({ top: 0 }),
 })
 
-// Route guard — redirect to /auth if not logged in
-const protectedRoutes = ['Cart', 'Profile', 'Dashboard', 'AddProduct', 'Messages', 'Orders']
-
 router.beforeEach((to, from, next) => {
-  const user = localStorage.getItem('user')
-  if (protectedRoutes.includes(to.name) && !user) {
-    next('/auth')
-  } else {
-    next()
+  if (to.meta.requiresAuth) {
+    const auth = useAuthStore()
+    auth.loadFromStorage()
+    if (!auth.user) return next('/auth')
   }
+  next()
 })
 
 export default router
