@@ -18,18 +18,14 @@
             <p class="adm-aside__role">Admin Panel</p>
           </div>
         </div>
-
         <nav class="adm-nav">
-          <button v-for="tab in tabs" :key="tab.key"
-            class="adm-nav__item"
-            :class="{ 'adm-nav__item--on': activeTab === tab.key }"
-            @click="switchTab(tab.key)">
-            <component :is="tab.icon" />
+          <button v-for="tab in tabs" :key="tab.key" class="adm-nav__item"
+            :class="{ 'adm-nav__item--on': activeTab===tab.key }" @click="switchTab(tab.key)">
+            <component :is="tab.icon"/>
             {{ tab.label }}
             <span v-if="stats[tab.badge]" class="adm-nav__pill">{{ stats[tab.badge] }}</span>
           </button>
         </nav>
-
         <div class="adm-aside__foot">
           <router-link to="/" class="adm-back-link">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -53,7 +49,7 @@
                 <component :is="s.icon" :style="`color:${s.color}`"/>
               </div>
               <div>
-                <span class="adm-stat__num">{{ stats[s.key] ?? '—' }}</span>
+                <span class="adm-stat__num">{{ stats[s.key]??'—' }}</span>
                 <span class="adm-stat__lbl">{{ s.label }}</span>
               </div>
             </div>
@@ -62,7 +58,8 @@
           <div class="adm-list">
             <p v-if="!recentProds.length" class="adm-empty">No listings yet.</p>
             <div v-for="p in recentProds.slice(0,8)" :key="p.id" class="adm-list-item">
-              <img :src="p.image_url||''" class="adm-list-item__img" alt="" @error="e=>e.target.style.display='none'"/>
+              <img v-if="p.image_url" :src="p.image_url" class="adm-list-item__img" alt="" @error="e=>e.target.style.display='none'"/>
+              <div v-else class="adm-list-item__img adm-list-item__img--empty"></div>
               <div class="adm-list-item__info">
                 <p class="adm-list-item__title">{{ p.title }}</p>
                 <p class="adm-list-item__meta">{{ p.category }} · {{ p.seller_name||'—' }} · {{ fmtDate(p.created_at) }}</p>
@@ -101,22 +98,18 @@
                   <td>
                     <img v-if="p.image_url" :src="p.image_url" class="adm-thumb" alt=""
                          @error="e=>e.target.style.display='none'"/>
+                    <div v-else class="adm-thumb adm-thumb--empty"></div>
                   </td>
                   <td class="adm-table__bold">{{ p.title }}</td>
-                  <!-- ✅ FIX: no inline style, plain class only, no user-select issue -->
                   <td><span class="adm-cat-tag">{{ p.category }}</span></td>
                   <td class="adm-table__price">₱{{ fmtPrice(p.price) }}</td>
-                  <td>
-                    <span :class="['adm-status', p.status==='Available' ? 'adm-status--avail' : 'adm-status--sold']">
-                      {{ p.status }}
-                    </span>
-                  </td>
+                  <td><span :class="['adm-status', p.status==='Available'?'adm-status--avail':'adm-status--sold']">{{ p.status }}</span></td>
                   <td class="adm-table__muted">{{ p.seller_name||'—' }}</td>
                   <td class="adm-table__muted">{{ fmtDate(p.created_at) }}</td>
                   <td>
                     <div style="display:flex;gap:6px">
                       <button class="adm-edit-btn" @click="openEditProduct(p)">Edit</button>
-                      <button class="adm-del-btn" @click="delProd(p)">Delete</button>
+                      <button class="adm-del-btn"  @click="delProd(p)">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -160,16 +153,12 @@
                   <td class="adm-table__muted">{{ u.email }}</td>
                   <td style="font-family:monospace;font-size:0.8rem">{{ u.student_id||'—' }}</td>
                   <td class="adm-table__muted">{{ u.course||'—' }}</td>
-                  <td class="adm-table__muted">{{ u.year_level ? 'Year '+u.year_level : '—' }}</td>
-                  <td>
-                    <span :class="['adm-role', u.is_admin ? 'adm-role--admin' : 'adm-role--user']">
-                      {{ u.is_admin ? 'Admin' : 'Student' }}
-                    </span>
-                  </td>
+                  <td class="adm-table__muted">{{ u.year_level?'Year '+u.year_level:'—' }}</td>
+                  <td><span :class="['adm-role', u.is_admin?'adm-role--admin':'adm-role--user']">{{ u.is_admin?'Admin':'Student' }}</span></td>
                   <td>
                     <div style="display:flex;gap:6px">
                       <button class="adm-edit-btn" @click="openEditUser(u)">Edit</button>
-                      <button class="adm-del-btn" @click="delUser(u)">Delete</button>
+                      <button class="adm-del-btn"  @click="delUser(u)">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -235,11 +224,7 @@
                   <td class="adm-table__muted">{{ m.receiver_name }}</td>
                   <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#555">{{ m.message }}</td>
                   <td class="adm-table__muted">{{ fmtDate(m.sent_at) }}</td>
-                  <td>
-                    <span :class="['adm-read', m.is_read ? 'adm-read--read' : 'adm-read--unread']">
-                      {{ m.is_read ? 'Read' : 'Unread' }}
-                    </span>
-                  </td>
+                  <td><span :class="['adm-read', m.is_read?'adm-read--read':'adm-read--unread']">{{ m.is_read?'Read':'Unread' }}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -249,7 +234,70 @@
       </main>
     </div>
 
-    <!-- ══ ADD/EDIT USER MODAL ══ -->
+    <!-- ══ PRODUCT MODAL (Add / Edit with image upload) ══════════════════ -->
+    <Transition name="modal">
+      <div v-if="showProdModal" class="modal-backdrop" @click.self="closeProdModal">
+        <div class="modal-box">
+          <button class="modal-close" @click="closeProdModal">×</button>
+          <h2 class="modal-title">{{ editingProd ? 'Edit Product' : 'Add Product' }}</h2>
+
+          <div class="modal-fields">
+
+            <!-- Image upload -->
+            <div class="mf">
+              <label>Product Images <span class="mf-hint">up to 5</span></label>
+              <div class="img-upload-area" @click="triggerProdFile" @dragover.prevent @drop.prevent="handleProdDrop">
+                <div v-if="!prodPreviews.length" class="img-upload-placeholder">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#003366" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                  <p>Click or drag images here</p>
+                  <span>JPG, PNG, WEBP — max 5MB each</span>
+                </div>
+                <div v-else class="img-preview-grid">
+                  <div v-for="(prev,i) in prodPreviews" :key="i" class="img-preview-item">
+                    <img :src="prev" class="img-preview-thumb"/>
+                    <button class="img-preview-remove" @click.stop="removeProdImage(i)">×</button>
+                    <span v-if="i===0" class="img-preview-main">Main</span>
+                  </div>
+                  <div v-if="prodPreviews.length < 5" class="img-add-more" @click.stop="triggerProdFile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003366" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Add</span>
+                  </div>
+                </div>
+              </div>
+              <input ref="prodFileRef" type="file" accept="image/*" multiple style="display:none" @change="handleProdFileChange"/>
+            </div>
+
+            <div class="mf"><label>Title *</label><input v-model="prodForm.title" class="mf-input" placeholder="Product title"/></div>
+            <div class="mf"><label>Price (₱) *</label><input v-model="prodForm.price" type="number" class="mf-input" placeholder="e.g. 350" min="0"/></div>
+            <div class="mf">
+              <label>Category *</label>
+              <select v-model="prodForm.category" class="mf-select">
+                <option value="" disabled>Select category</option>
+                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+            <div class="mf" v-if="!editingProd">
+              <label>Seller User ID *</label>
+              <input v-model="prodForm.seller_id" type="number" class="mf-input" placeholder="Check Users tab for ID"/>
+              <p class="mf-hint-text">The user ID of the seller (from Users tab)</p>
+            </div>
+            <div class="mf"><label>Description</label><textarea v-model="prodForm.description" rows="3" class="mf-textarea" placeholder="Product condition, details…"></textarea></div>
+            <div class="mf">
+              <label>Tags <span class="mf-hint">(comma-separated)</span></label>
+              <input v-model="prodForm.tags" class="mf-input" placeholder="e.g. casio,calculator,math"/>
+            </div>
+          </div>
+
+          <button class="modal-submit" @click="saveProd" :disabled="savingProd">
+            <svg v-if="!savingProd" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            {{ savingProd ? 'Saving…' : (editingProd ? 'Save Changes' : 'Post Product') }}
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ══ USER MODAL ══ -->
     <Transition name="modal">
       <div v-if="showUserModal" class="modal-backdrop" @click.self="showUserModal=false">
         <div class="modal-box">
@@ -259,7 +307,7 @@
             <div class="mf"><label>Full Name *</label><input v-model="userForm.name" class="mf-input" placeholder="e.g. Juan Dela Cruz"/></div>
             <div class="mf"><label>ADNU Email *</label><input v-model="userForm.email" class="mf-input" placeholder="@gbox.adnu.edu.ph" :disabled="!!editingUser"/></div>
             <div class="mf" v-if="!editingUser"><label>Password *</label><input v-model="userForm.password" type="password" class="mf-input" placeholder="Min 6 characters"/></div>
-            <div class="mf"><label>Student ID *</label><input v-model="userForm.student_id" class="mf-input" placeholder="e.g. 2024-00001"/></div>
+            <div class="mf"><label>Student ID</label><input v-model="userForm.student_id" class="mf-input" placeholder="e.g. 2024-00001"/></div>
             <div class="mf"><label>Course</label><input v-model="userForm.course" class="mf-input" placeholder="e.g. BS Information Technology"/></div>
             <div class="mf">
               <label>Year Level</label>
@@ -272,36 +320,6 @@
           </div>
           <button class="modal-submit" @click="saveUser" :disabled="savingUser">
             {{ savingUser ? 'Saving…' : (editingUser ? 'Save Changes' : 'Create User') }}
-          </button>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- ══ ADD/EDIT PRODUCT MODAL ══ -->
-    <Transition name="modal">
-      <div v-if="showProdModal" class="modal-backdrop" @click.self="showProdModal=false">
-        <div class="modal-box">
-          <button class="modal-close" @click="showProdModal=false">×</button>
-          <h2 class="modal-title">{{ editingProd ? 'Edit Product' : 'Add Product' }}</h2>
-          <div class="modal-fields">
-            <div class="mf"><label>Title *</label><input v-model="prodForm.title" class="mf-input" placeholder="Product title"/></div>
-            <div class="mf"><label>Price (₱) *</label><input v-model="prodForm.price" type="number" class="mf-input" placeholder="e.g. 350"/></div>
-            <div class="mf">
-              <label>Category *</label>
-              <select v-model="prodForm.category" class="mf-select">
-                <option value="" disabled>Select category</option>
-                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-            <div class="mf" v-if="!editingProd">
-              <label>Seller User ID *</label>
-              <input v-model="prodForm.seller_id" type="number" class="mf-input" placeholder="Check Users tab for ID"/>
-            </div>
-            <div class="mf"><label>Description</label><textarea v-model="prodForm.description" rows="3" class="mf-textarea" placeholder="Product description…"></textarea></div>
-            <div class="mf"><label>Tags <span style="font-weight:400;color:#aaa">(comma-separated)</span></label><input v-model="prodForm.tags" class="mf-input" placeholder="e.g. casio,calculator,math"/></div>
-          </div>
-          <button class="modal-submit" @click="saveProd" :disabled="savingProd">
-            {{ savingProd ? 'Saving…' : (editingProd ? 'Save Changes' : 'Post Product') }}
           </button>
         </div>
       </div>
@@ -338,38 +356,40 @@ const statCards = [
   { key:'orders',   label:'Orders',   icon:IconOrder, bg:'#fff8e0', color:'#854d0e' },
   { key:'messages', label:'Messages', icon:IconMsg,   bg:'#fce8ff', color:'#7c3aed' },
 ]
-
 const categories = ['Textbooks','Electronics','Dorm Items','Uniforms','School Supplies','Food','Services','Others']
 
 // ── State ──────────────────────────────────────────────────────────────────
-const activeTab   = ref('overview')
-const stats       = ref({})
-const recentProds = ref([])
-const allProds    = ref([]), allUsers = ref([]), allMsgs = ref([]), allOrders = ref([])
+const activeTab    = ref('overview')
+const stats        = ref({})
+const recentProds  = ref([])
+const allProds     = ref([]), allUsers = ref([]), allMsgs = ref([]), allOrders = ref([])
 const loadingProds = ref(false), loadingUsers = ref(false), loadingMsgs = ref(false), loadingOrders = ref(false)
-const prodSearch  = ref(''), userSearch = ref(''), msgSearch = ref(''), orderSearch = ref('')
-const toast       = ref({ show:false, text:'', type:'' })
-let   toastTimer  = null
+const prodSearch   = ref(''), userSearch = ref(''), msgSearch = ref(''), orderSearch = ref('')
+const toast        = ref({ show:false, text:'', type:'' })
+let   toastTimer   = null
 
-// User modal
+// Product modal state
+const showProdModal = ref(false)
+const editingProd   = ref(null)
+const savingProd    = ref(false)
+const prodForm      = ref({ title:'', price:'', category:'', seller_id:'', description:'', tags:'' })
+const prodFiles     = ref([])     // new File objects
+const prodPreviews  = ref([])     // preview URLs (string = existing URL, or blob URL)
+const prodFileRef   = ref(null)
+
+// User modal state
 const showUserModal = ref(false)
 const editingUser   = ref(null)
 const savingUser    = ref(false)
 const userForm      = ref({ name:'', email:'', password:'', student_id:'', course:'', year_level:'', department:'' })
 
-// Product modal
-const showProdModal = ref(false)
-const editingProd   = ref(null)
-const savingProd    = ref(false)
-const prodForm      = ref({ title:'', price:'', category:'', seller_id:'', description:'', tags:'' })
-
 // ── Computed ───────────────────────────────────────────────────────────────
-const filteredProds  = computed(() => { const q=prodSearch.value.toLowerCase();  return q ? allProds.value.filter(p=>`${p.title} ${p.seller_name} ${p.category}`.toLowerCase().includes(q)) : allProds.value })
-const filteredUsers  = computed(() => { const q=userSearch.value.toLowerCase();  return q ? allUsers.value.filter(u=>`${u.name} ${u.email} ${u.student_id}`.toLowerCase().includes(q)) : allUsers.value })
-const filteredMsgs   = computed(() => { const q=msgSearch.value.toLowerCase();   return q ? allMsgs.value.filter(m=>`${m.message} ${m.sender_name} ${m.receiver_name}`.toLowerCase().includes(q)) : allMsgs.value })
-const filteredOrders = computed(() => { const q=orderSearch.value.toLowerCase(); return q ? allOrders.value.filter(o=>`${o.product_title} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q)) : allOrders.value })
+const filteredProds  = computed(() => { const q=prodSearch.value.toLowerCase();  return q?allProds.value.filter(p=>`${p.title} ${p.seller_name} ${p.category}`.toLowerCase().includes(q)):allProds.value })
+const filteredUsers  = computed(() => { const q=userSearch.value.toLowerCase();  return q?allUsers.value.filter(u=>`${u.name} ${u.email} ${u.student_id}`.toLowerCase().includes(q)):allUsers.value })
+const filteredMsgs   = computed(() => { const q=msgSearch.value.toLowerCase();   return q?allMsgs.value.filter(m=>`${m.message} ${m.sender_name} ${m.receiver_name}`.toLowerCase().includes(q)):allMsgs.value })
+const filteredOrders = computed(() => { const q=orderSearch.value.toLowerCase(); return q?allOrders.value.filter(o=>`${o.product_title} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q)):allOrders.value })
 
-// ── Load data ──────────────────────────────────────────────────────────────
+// ── Data loading ───────────────────────────────────────────────────────────
 const loadAll = async () => {
   try { stats.value = (await api.adminStats()).data } catch {}
   try { recentProds.value = (await api.adminProducts()).data } catch {}
@@ -389,56 +409,84 @@ const loadOrdersTab= async () => { loadingOrders.value=true; try { allOrders.val
 // ── Delete ─────────────────────────────────────────────────────────────────
 const delProd = async (p) => {
   if (!confirm(`Delete "${p.title}"?`)) return
-  try { await api.adminDeleteProduct(p.id); allProds.value=allProds.value.filter(x=>x.id!==p.id); recentProds.value=recentProds.value.filter(x=>x.id!==p.id); showToast('Product deleted','success') }
+  try { await api.adminDeleteProduct(p.id); allProds.value=allProds.value.filter(x=>x.id!==p.id); recentProds.value=recentProds.value.filter(x=>x.id!==p.id); showToast('Deleted','success') }
   catch { showToast('Failed','error') }
 }
 const delUser = async (u) => {
   if (!confirm(`Delete "${u.name}"? All their data will be removed.`)) return
-  try { await api.adminDeleteUser(u.id); allUsers.value=allUsers.value.filter(x=>x.id!==u.id); showToast('User deleted','success') }
+  try { await api.adminDeleteUser(u.id); allUsers.value=allUsers.value.filter(x=>x.id!==u.id); showToast('Deleted','success') }
   catch { showToast('Failed','error') }
 }
 
-// ── Add/Edit User ──────────────────────────────────────────────────────────
-const openAddUser  = () => { editingUser.value=null; userForm.value={name:'',email:'',password:'',student_id:'',course:'',year_level:'',department:''}; showUserModal.value=true }
-const openEditUser = (u) => { editingUser.value=u; userForm.value={name:u.name,email:u.email,password:'',student_id:u.student_id||'',course:u.course||'',year_level:u.year_level||'',department:u.department||''}; showUserModal.value=true }
-
-const saveUser = async () => {
-  if (!userForm.value.name || !userForm.value.email) { showToast('Name and email required','error'); return }
-  if (!editingUser.value && !userForm.value.password) { showToast('Password required','error'); return }
-  savingUser.value = true
-  try {
-    if (editingUser.value) {
-      await api.adminUpdateUser(editingUser.value.id, userForm.value)
-      const i = allUsers.value.findIndex(x=>x.id===editingUser.value.id)
-      if (i >= 0) allUsers.value[i] = { ...allUsers.value[i], ...userForm.value }
-      showToast('User updated','success')
-    } else {
-      await api.adminCreateUser(userForm.value)
-      await loadUsers()
-      showToast('User created','success')
-    }
-    showUserModal.value = false
-  } catch (e) { showToast(e.response?.data?.message || 'Failed','error') }
-  finally { savingUser.value = false }
-}
-
-// ── Add/Edit Product ───────────────────────────────────────────────────────
-const openAddProduct  = () => {
+// ── Product modal ──────────────────────────────────────────────────────────
+const openAddProduct = () => {
   editingProd.value = null
-  prodForm.value = { title:'', price:'', category:'', seller_id:'', description:'', tags:'' }
+  prodForm.value    = { title:'', price:'', category:'', seller_id:'', description:'', tags:'' }
+  prodFiles.value   = []
+  prodPreviews.value= []
   showProdModal.value = true
 }
+
 const openEditProduct = (p) => {
   editingProd.value = p
   prodForm.value = {
-    title:       p.title,
-    price:       p.price,
-    category:    p.category,
+    title:       p.title || '',
+    price:       p.price || '',
+    category:    p.category || '',
     seller_id:   p.seller_id || '',
     description: p.description || '',
-    tags:        Array.isArray(p.tags) ? p.tags.join(',') : (p.tags || ''),
+    // Normalize tags to comma string
+    tags: Array.isArray(p.tags)
+      ? p.tags.filter(Boolean).join(',')
+      : (p.tags || ''),
+  }
+  prodFiles.value = []
+  // Pre-fill previews with existing images
+  if (p.images && p.images.length) {
+    prodPreviews.value = [...p.images]
+  } else if (p.image_url) {
+    prodPreviews.value = [p.image_url]
+  } else {
+    prodPreviews.value = []
   }
   showProdModal.value = true
+}
+
+const closeProdModal = () => {
+  showProdModal.value = false
+  prodFiles.value     = []
+  prodPreviews.value  = []
+}
+
+// Image handling for product modal
+const triggerProdFile = () => prodFileRef.value?.click()
+
+const handleProdFileChange = (e) => processProdFiles(e.target.files)
+const handleProdDrop       = (e) => processProdFiles(e.dataTransfer.files)
+
+const processProdFiles = (files) => {
+  const slots = 5 - prodPreviews.value.length
+  if (slots <= 0) return
+  const arr = Array.from(files).slice(0, slots)
+  arr.forEach(file => {
+    if (!file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) { alert(`${file.name} too large (max 5MB)`); return }
+    prodFiles.value.push(file)
+    prodPreviews.value.push(URL.createObjectURL(file))
+  })
+}
+
+const removeProdImage = (i) => {
+  // Check if this preview is a blob (new file) or existing URL
+  const preview = prodPreviews.value[i]
+  if (preview && preview.startsWith('blob:')) {
+    // It's a new file — find and remove from prodFiles
+    const blobIdx = prodPreviews.value.slice(0, i + 1).filter(p => p.startsWith('blob:')).length - 1
+    if (blobIdx >= 0 && blobIdx < prodFiles.value.length) {
+      prodFiles.value.splice(blobIdx, 1)
+    }
+  }
+  prodPreviews.value.splice(i, 1)
 }
 
 const saveProd = async () => {
@@ -450,38 +498,66 @@ const saveProd = async () => {
   }
   savingProd.value = true
   try {
+    const fd = new FormData()
+    fd.append('title',       prodForm.value.title.trim())
+    fd.append('description', prodForm.value.description || '')
+    fd.append('price',       Number(prodForm.value.price))
+    fd.append('category',    prodForm.value.category)
+    fd.append('tags',        prodForm.value.tags || '')
+
     if (editingProd.value) {
-      // Use the regular product update endpoint (PUT /api/products/:id)
-      // We need user_id (seller_id) for authorization
-      const payload = {
-        title:       prodForm.value.title,
-        price:       Number(prodForm.value.price),
-        category:    prodForm.value.category,
-        description: prodForm.value.description,
-        tags:        prodForm.value.tags,
-        user_id:     editingProd.value.seller_id, // seller_id acts as user_id for auth
-      }
-      await api.updateProduct(editingProd.value.id, payload)
-      // Update local list
-      const i = allProds.value.findIndex(x=>x.id===editingProd.value.id)
-      if (i >= 0) {
-        allProds.value[i] = {
-          ...allProds.value[i],
-          title:    prodForm.value.title,
-          price:    Number(prodForm.value.price),
-          category: prodForm.value.category,
-          tags:     prodForm.value.tags ? prodForm.value.tags.split(',').map(t=>t.trim()) : [],
-        }
-      }
+      // For edit: use seller_id as user_id for auth check
+      fd.append('user_id', editingProd.value.seller_id)
+      // Append new image files only
+      prodFiles.value.forEach(f => fd.append('images', f))
+      await api.updateProductWithImage(editingProd.value.id, fd)
+      // Refresh products list
+      await loadProds()
       showToast('Product updated','success')
     } else {
-      await api.adminCreateProduct(prodForm.value)
+      fd.append('user_id', prodForm.value.seller_id)
+      prodFiles.value.forEach(f => fd.append('images', f))
+      await api.createProduct(fd)
       await loadProds()
       showToast('Product added','success')
     }
-    showProdModal.value = false
+    closeProdModal()
+  } catch (e) {
+    showToast(e.response?.data?.message || 'Failed to save','error')
+  } finally {
+    savingProd.value = false
+  }
+}
+
+// ── User modal ─────────────────────────────────────────────────────────────
+const openAddUser = () => {
+  editingUser.value = null
+  userForm.value    = { name:'', email:'', password:'', student_id:'', course:'', year_level:'', department:'' }
+  showUserModal.value = true
+}
+const openEditUser = (u) => {
+  editingUser.value = u
+  userForm.value    = { name:u.name||'', email:u.email||'', password:'', student_id:u.student_id||'', course:u.course||'', year_level:u.year_level||'', department:u.department||'' }
+  showUserModal.value = true
+}
+const saveUser = async () => {
+  if (!userForm.value.name || !userForm.value.email) { showToast('Name and email required','error'); return }
+  if (!editingUser.value && !userForm.value.password) { showToast('Password required','error'); return }
+  savingUser.value = true
+  try {
+    if (editingUser.value) {
+      await api.adminUpdateUser(editingUser.value.id, userForm.value)
+      const i = allUsers.value.findIndex(x=>x.id===editingUser.value.id)
+      if (i>=0) allUsers.value[i] = { ...allUsers.value[i], ...userForm.value }
+      showToast('User updated','success')
+    } else {
+      await api.adminCreateUser(userForm.value)
+      await loadUsers()
+      showToast('User created','success')
+    }
+    showUserModal.value = false
   } catch (e) { showToast(e.response?.data?.message || 'Failed','error') }
-  finally { savingProd.value = false }
+  finally { savingUser.value = false }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -493,11 +569,13 @@ onMounted(loadAll)
 </script>
 
 <style scoped>
-/* ── Layout ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; transform-origin: center; }
+
 .adm { min-height:100vh; font-family:'Plus Jakarta Sans','Inter',sans-serif; }
 .adm-dash { display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
 
-/* ── Sidebar ── */
+/* Sidebar */
 .adm-aside { background:#003366; display:flex; flex-direction:column; }
 .adm-aside__brand { display:flex; align-items:center; gap:12px; padding:20px; border-bottom:1px solid rgba(255,255,255,0.08); }
 .adm-aside__name { font-size:0.95rem; font-weight:800; color:#fff; margin:0 0 2px; }
@@ -506,38 +584,36 @@ onMounted(loadAll)
 .adm-nav__item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:none; background:none; color:rgba(255,255,255,0.65); font-size:0.875rem; font-weight:500; cursor:pointer; border-radius:9px; transition:0.15s; text-align:left; font-family:inherit; width:100%; }
 .adm-nav__item:hover { background:rgba(255,255,255,0.1); color:#fff; }
 .adm-nav__item--on { background:#FFD700; color:#003366; font-weight:700; }
-.adm-nav__item--on:hover { background:#e6c200; }
 .adm-nav__pill { margin-left:auto; background:rgba(255,255,255,0.2); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
 .adm-nav__item--on .adm-nav__pill { background:rgba(0,51,102,0.2); color:#003366; }
 .adm-aside__foot { padding:16px; border-top:1px solid rgba(255,255,255,0.08); }
 .adm-back-link { font-size:0.78rem; color:rgba(255,255,255,0.45); text-decoration:none; display:flex; align-items:center; gap:5px; justify-content:center; }
 .adm-back-link:hover { color:rgba(255,255,255,0.8); }
 
-/* ── Main ── */
+/* Main */
 .adm-main { background:#f4f7fb; overflow-y:auto; }
 .adm-section { padding:28px 32px 48px; }
 .adm-section__head { margin-bottom:20px; }
 .adm-section__title { font-size:1.5rem; font-weight:800; color:#003366; margin:0 0 4px; }
 .adm-section__sub { font-size:0.875rem; color:#888; margin:0; }
 .adm-subtitle { font-size:1rem; font-weight:700; color:#003366; margin:0; }
-
 .adm-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
 .adm-stat { background:#fff; border:1px solid #e2eaf4; border-radius:14px; padding:18px 20px; display:flex; align-items:center; gap:14px; }
 .adm-stat__icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .adm-stat__num { font-size:1.6rem; font-weight:800; color:#003366; line-height:1; display:block; }
 .adm-stat__lbl { font-size:0.78rem; color:#888; display:block; }
-
 .adm-list { background:#fff; border:1px solid #e2eaf4; border-radius:14px; overflow:hidden; }
 .adm-empty { padding:1.5rem; text-align:center; color:#bbb; font-size:0.875rem; margin:0; }
 .adm-list-item { display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid #f0f4f8; }
 .adm-list-item:last-child { border-bottom:none; }
 .adm-list-item__img { width:42px; height:42px; border-radius:8px; object-fit:cover; background:#f0f4f8; flex-shrink:0; }
+.adm-list-item__img--empty { background:#f0f4f8; }
 .adm-list-item__info { flex:1; min-width:0; }
 .adm-list-item__title { font-size:0.875rem; font-weight:600; color:#003366; margin:0 0 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .adm-list-item__meta { font-size:0.75rem; color:#888; margin:0; }
 .adm-list-item__price { font-size:0.9rem; font-weight:700; color:#003366; white-space:nowrap; }
 
-/* ── Table ── */
+/* Table */
 .adm-table-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
 .adm-badge { background:#e8f0fe; color:#003366; font-size:12px; font-weight:700; padding:3px 10px; border-radius:12px; }
 .adm-search-wrap { display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #e0e8f4; border-radius:9px; padding:8px 14px; }
@@ -545,7 +621,6 @@ onMounted(loadAll)
 .adm-search { border:none; outline:none; font-size:0.875rem; color:#333; background:transparent; width:200px; font-family:inherit; }
 .adm-add-btn { display:flex; align-items:center; gap:6px; background:#003366; color:#FFD700; border:none; padding:9px 16px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; font-family:inherit; transition:0.15s; white-space:nowrap; }
 .adm-add-btn:hover { background:#002244; }
-
 .adm-table-wrap { background:#fff; border:1px solid #e2eaf4; border-radius:14px; overflow:hidden; overflow-x:auto; }
 .adm-table { width:100%; border-collapse:collapse; }
 .adm-table thead tr { background:#f8faff; border-bottom:1px solid #e8edf4; }
@@ -559,20 +634,8 @@ onMounted(loadAll)
 .adm-table__muted { color:#888; font-size:0.82rem; }
 .adm-table__price { font-weight:700; color:#003366; white-space:nowrap; }
 .adm-thumb { width:36px; height:36px; border-radius:7px; object-fit:cover; display:block; background:#f0f4f8; }
-
-/* ✅ FIX: no blue highlight — plain background, no user-select issues */
-.adm-cat-tag {
-  display: inline-block;
-  padding: 3px 9px;
-  background: #eef3ff;
-  color: #003366;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  /* No border, no outline, no selection color */
-  user-select: none;
-}
-
+.adm-thumb--empty { width:36px; height:36px; border-radius:7px; background:#f0f4f8; display:block; }
+.adm-cat-tag { display:inline-block; padding:3px 9px; background:#eef3ff; color:#003366; border-radius:6px; font-size:11px; font-weight:700; user-select:none; }
 .adm-status { display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; user-select:none; }
 .adm-status--avail { background:#e8f8f0; color:#15803d; }
 .adm-status--sold  { background:#fee8e8; color:#b91c1c; }
@@ -583,30 +646,46 @@ onMounted(loadAll)
 .adm-role--admin { background:#fce8ff; color:#7c3aed; }
 .adm-role--user  { background:#e8f0fe; color:#003366; }
 .adm-av { width:28px; height:28px; border-radius:50%; background:#003366; color:#FFD700; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
-
 .adm-edit-btn { background:none; border:1px solid #d0dbe8; color:#003366; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; transition:0.12s; font-family:inherit; white-space:nowrap; }
 .adm-edit-btn:hover { background:#eef3ff; }
 .adm-del-btn { background:none; border:1px solid #fcc; color:#c0392b; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; transition:0.12s; font-family:inherit; white-space:nowrap; }
 .adm-del-btn:hover { background:#fff5f5; }
 
-/* ── Modals ── */
+/* Modals */
 .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1rem; }
-.modal-box { background:#fff; border-radius:18px; width:100%; max-width:480px; padding:1.75rem; position:relative; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
-.modal-close { position:absolute; top:14px; right:14px; width:32px; height:32px; background:#f0f4f8; border:none; border-radius:8px; color:#666; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:0.15s; line-height:1; }
+.modal-box { background:#fff; border-radius:18px; width:100%; max-width:500px; padding:1.75rem; position:relative; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:0; }
+.modal-close { position:absolute; top:14px; right:14px; width:32px; height:32px; background:#f0f4f8; border:none; border-radius:8px; color:#666; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:0.15s; line-height:1; }
 .modal-close:hover { background:#e74c3c; color:#fff; }
 .modal-title { font-size:1.1rem; font-weight:800; color:#003366; margin:0 0 1.25rem; }
 .modal-fields { display:flex; flex-direction:column; gap:12px; margin-bottom:1.25rem; }
 .mf { display:flex; flex-direction:column; gap:5px; }
 .mf label { font-size:0.75rem; font-weight:700; color:#003366; text-transform:uppercase; letter-spacing:0.4px; }
+.mf-hint { font-size:0.72rem; color:#aaa; font-weight:400; text-transform:none; letter-spacing:0; margin-left:4px; }
+.mf-hint-text { font-size:0.72rem; color:#bbb; margin:3px 0 0; }
 .mf-input,.mf-select,.mf-textarea { padding:9px 12px; border:1.5px solid #e0e8f4; border-radius:8px; font-size:0.875rem; color:#1a1a2e; outline:none; font-family:inherit; background:#fafcff; transition:0.15s; width:100%; box-sizing:border-box; }
 .mf-input:focus,.mf-select:focus,.mf-textarea:focus { border-color:#003366; }
 .mf-input:disabled { background:#f0f0f0; color:#aaa; cursor:not-allowed; }
 .mf-textarea { resize:vertical; }
-.modal-submit { width:100%; background:#003366; color:#FFD700; border:none; padding:13px; border-radius:10px; font-weight:800; font-size:0.95rem; cursor:pointer; font-family:inherit; transition:0.15s; }
+
+/* Image upload in modal */
+.img-upload-area { border:2px dashed #c8d8ea; border-radius:12px; cursor:pointer; min-height:110px; transition:border-color 0.2s; overflow:hidden; }
+.img-upload-area:hover { border-color:#003366; }
+.img-upload-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:1.5rem; color:#aaa; text-align:center; min-height:110px; }
+.img-upload-placeholder p { font-size:0.875rem; font-weight:600; color:#555; margin:0; }
+.img-upload-placeholder span { font-size:0.75rem; }
+.img-preview-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
+.img-preview-item { position:relative; width:80px; height:80px; border-radius:8px; overflow:hidden; border:1.5px solid #e0e8f4; }
+.img-preview-thumb { width:100%; height:100%; object-fit:cover; }
+.img-preview-remove { position:absolute; top:3px; right:3px; width:20px; height:20px; background:rgba(0,0,0,0.65); color:#fff; border:none; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1; }
+.img-preview-main { position:absolute; bottom:3px; left:3px; background:#003366; color:#FFD700; font-size:8px; font-weight:700; padding:2px 5px; border-radius:4px; }
+.img-add-more { width:80px; height:80px; border-radius:8px; border:2px dashed #c8d8ea; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; color:#003366; font-size:0.65rem; font-weight:600; transition:0.15s; }
+.img-add-more:hover { border-color:#003366; background:#f0f5ff; }
+
+.modal-submit { width:100%; background:#003366; color:#FFD700; border:none; padding:13px; border-radius:10px; font-weight:800; font-size:0.95rem; cursor:pointer; font-family:inherit; transition:0.15s; display:flex; align-items:center; justify-content:center; gap:8px; }
 .modal-submit:hover:not(:disabled) { background:#002244; }
 .modal-submit:disabled { opacity:0.6; cursor:not-allowed; }
 
-/* ── Toast ── */
+/* Toast */
 .adm-toast { position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:10px; font-size:0.875rem; font-weight:600; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.12); }
 .adm-toast--success { background:#fff; border:1.5px solid #16a34a; color:#15803d; }
 .adm-toast--error   { background:#fff; border:1.5px solid #c0392b; color:#c0392b; }
