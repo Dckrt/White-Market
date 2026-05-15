@@ -15,6 +15,7 @@ const routes = [
   { path: '/messages',     component: () => import('@/views/MessagesPage.vue'), meta: { requiresAuth: true } },
   { path: '/profile',      component: () => import('@/views/Profile.vue'),     meta: { requiresAuth: true } },
   { path: '/orders',       component: () => import('@/views/OrdersView.vue'),  meta: { requiresAuth: true } },
+  { path: '/notifications', component: () => import('@/views/NotificationsPage.vue'), meta: { requiresAuth: true } },
   { path: '/admin',        component: () => import('@/views/AdminView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
