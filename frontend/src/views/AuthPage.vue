@@ -5,7 +5,7 @@
     <div class="left-panel">
       <div class="left-content">
         <div class="brand">
-          <span class="brand-icon">🛍️</span>
+          
           <span class="brand-name">Adnu <strong>Market</strong></span>
         </div>
         <h1 class="tagline">Buy & sell within<br/>the Golden Knights community.</h1>
