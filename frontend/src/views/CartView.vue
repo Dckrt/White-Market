@@ -205,9 +205,9 @@ const processOrder = async () => {
       payment:    checkout.value.payment,
       location:   checkout.value.location,
     })
-    alert(`Order placed! Meet seller at: ${checkout.value.location}`)
     cartItems.value = cartItems.value.filter(i => i.cart_id !== selectedItem.value.cart_id)
     selectedItem.value = null
+    router.push('/orders') // ← IDAGDAG ITO
   } catch (err) {
     alert(err.response?.data?.message || 'Checkout failed.')
   } finally { checkingOut.value = false }

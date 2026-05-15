@@ -49,7 +49,11 @@
                 <div class="nav__skel" v-for="n in 3" :key="n"></div>
               </div>
               <p v-else-if="!notifications.length" class="nav__dd-empty">No notifications yet</p>
-              <div v-for="(n,i) in notifications" :key="n.id||i" class="nav__notif-item" :class="{'nav__notif-item--unread':!n.is_read}">
+              <div v-for="(n,i) in notifications" :key="n.id||i"
+     class="nav__notif-item"
+     :class="{'nav__notif-item--unread':!n.is_read}"
+     @click="handleNotifClick(n)"
+     style="cursor:pointer">
                 <span class="nav__notif-dot" :class="{'nav__notif-dot--on':!n.is_read}"></span>
                 <div class="nav__notif-body">
                   <p>{{ n.message }}</p>
@@ -241,6 +245,20 @@ onMounted(async () => {
     pA = setInterval(() => { fetchCart(); fetchUnread() }, 8000)
     pB = setInterval(() => fetchNotifs(), 15000)
   }
+
+  const handleNotifClick = (notif) => {
+  closeNotif()
+  const msg = notif.message || ''
+  if (msg.includes('💬') || msg.includes('message')) {
+    router.push('/messages')
+  } else if (msg.includes('order') || msg.includes('Order') || msg.includes('placed') || msg.includes('🎉') || msg.includes('✅')) {
+    router.push('/orders')
+  } else if (msg.includes('cart') || msg.includes('Cart')) {
+    router.push('/cart')
+  } else {
+    router.push('/notifications')
+  }
+}
 })
 
 onUnmounted(() => {

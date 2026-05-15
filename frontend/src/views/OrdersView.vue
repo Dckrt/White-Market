@@ -113,7 +113,7 @@ const chatSeller = (order) => {
 onMounted(async () => {
   if (!user) return router.push('/auth')
   try {
-    const res = await api.getMyOrders(user.user_id)
+    const res = await api.getOrders(user.user_id)
     orders.value = Array.isArray(res.data) ? res.data : []
   } catch (err) {
     console.error('Orders fetch error:', err)

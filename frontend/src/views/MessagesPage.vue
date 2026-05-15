@@ -221,8 +221,6 @@ const fetchThreads = async (silent = false) => {
     const r = await api.getThreads(user.user_id)
     const fresh = Array.isArray(r.data) ? r.data : []
 
-    // Normalize: backend returns seller_id — rename to partner_id so both
-    // buyer and seller sides work the same way
     const normalized = fresh.map(t => ({
       partner_id:   t.seller_id   ?? t.partner_id,
       partner_name: t.seller_name ?? t.partner_name,
@@ -231,7 +229,6 @@ const fetchThreads = async (silent = false) => {
       unread:       t.unread,
     }))
 
-    // If we have an active thread, keep its unread=false
     if (activeThread.value) {
       const found = normalized.find(t =>
         Number(t.partner_id) === Number(activeThread.value.partner_id)
@@ -239,10 +236,28 @@ const fetchThreads = async (silent = false) => {
       if (found) found.unread = false
     }
 
-    // Merge: keep temp threads that server hasn't confirmed yet
+    
     const serverIds = new Set(normalized.map(t => Number(t.partner_id)))
     const tempOnly  = threads.value.filter(t => t._temp && !serverIds.has(Number(t.partner_id)))
-    threads.value   = [...normalized, ...tempOnly]
+
+
+    const activeKept = []
+    if (activeThread.value) {
+      const activeInServer = serverIds.has(Number(activeThread.value.partner_id))
+      const activeInTemp   = tempOnly.find(t => Number(t.partner_id) === Number(activeThread.value.partner_id))
+      if (!activeInServer && !activeInTemp) {
+        activeKept.push({
+          partner_id:   activeThread.value.partner_id,
+          partner_name: activeThread.value.partner_name,
+          last_message: activeThread.value.last_message || '',
+          last_time:    activeThread.value.last_time    || '',
+          unread:       false,
+          _temp:        true,
+        })
+      }
+    }
+
+    threads.value = [...normalized, ...tempOnly, ...activeKept]
 
   } catch (e) {
     console.error('fetchThreads error:', e)

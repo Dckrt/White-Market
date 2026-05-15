@@ -55,15 +55,18 @@ export default {
   updatePayment:     (uid, data) => api.put(`/users/${uid}/payment`, data),
 
   // Admin
+    // Admin
   adminLogin:         (pw)   => api.post('/admin/login', { password: pw }),
   adminStats:         ()     => api.get('/admin/stats'),
   adminUsers:         ()     => api.get('/admin/users'),
   adminCreateUser:    (data) => api.post('/admin/users', data),
   adminUpdateUser:    (id, data) => api.put(`/admin/users/${id}`, data),
   adminDeleteUser:    (id)   => api.delete(`/admin/users/${id}`),
+  adminBlockUser: (id, data) => api.post(`/admin/users/${id}/block`, data),
   adminProducts:      ()     => api.get('/admin/products'),
   adminCreateProduct: (data) => api.post('/admin/products', data),
   adminDeleteProduct: (id)   => api.delete(`/admin/products/${id}`),
   adminOrders:        ()     => api.get('/admin/orders'),
   adminMessages:      ()     => api.get('/admin/messages'),
+  
 }
