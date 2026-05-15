@@ -156,15 +156,32 @@
                   <td class="adm-table__muted">{{ u.year_level?'Year '+u.year_level:'—' }}</td>
                   <td><span :class="['adm-role', u.is_admin?'adm-role--admin':'adm-role--user']">{{ u.is_admin?'Admin':'Student' }}</span></td>
                   <td>
-                    <div style="display:flex;gap:6px">
-                      <button class="adm-edit-btn" @click="openEditUser(u)">Edit</button>
-                      <button class="adm-del-btn"  @click="delUser(u)">Delete</button>
-                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="adm-edit-btn" @click="openEditUser(u)">
+                    Edit
+                  </button>
+
+                  <button class="adm-block-btn" @click="blockUser(u)">
+                    {{ u.is_blocked ? 'Unblock' : 'Block' }}
+                  </button>
+
+                  <button
+                    class="adm-admin-btn"
+                    @click="toggleAdmin(u)"
+                  >
+                    {{ u.is_admin ? 'Remove Admin' : 'Make Admin' }}
+                  </button>
+
+                  <button class="adm-del-btn" @click="delUser(u)">
+                    Delete
+                  </button>
+                </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          
         </section>
 
         <!-- ORDERS -->
@@ -416,6 +433,90 @@ const delUser = async (u) => {
   if (!confirm(`Delete "${u.name}"? All their data will be removed.`)) return
   try { await api.adminDeleteUser(u.id); allUsers.value=allUsers.value.filter(x=>x.id!==u.id); showToast('Deleted','success') }
   catch { showToast('Failed','error') }
+}
+
+const blockUser = async (u) => {
+
+  // UNBLOCK
+  if (u.is_blocked) {
+
+    try {
+
+      await api.post(`/admin/users/${u.id}/block`, {
+        action: 'unblock'
+      })
+
+      u.is_blocked = 0
+
+      showToast('User unblocked','success')
+
+    } catch {
+      showToast('Failed','error')
+    }
+
+    return
+  }
+
+  // BLOCK OPTIONS
+  const option = prompt(
+`Block Duration
+
+1 = 1 Hour
+24 = 1 Day
+168 = 1 Week
+999 = Permanent`
+  )
+
+  if (!option) return
+
+  try {
+
+    if (option === '999') {
+
+      await api.post(`/admin/users/${u.id}/block`, {
+        action: 'block',
+        block_type: 'permanent'
+      })
+
+    } else {
+
+      await api.post(`/admin/users/${u.id}/block`, {
+        action: 'block',
+        block_type: 'hours',
+        duration: Number(option)
+      })
+
+    }
+
+    u.is_blocked = 1
+
+    showToast('User blocked','success')
+
+  } catch {
+    showToast('Failed','error')
+  }
+}
+
+const toggleAdmin = async (u) => {
+
+  try {
+
+    await api.adminUpdateUser(u.id, {
+      is_admin: u.is_admin ? 0 : 1
+    })
+
+    u.is_admin = u.is_admin ? 0 : 1
+
+    showToast(
+      u.is_admin
+        ? 'User is now admin'
+        : 'Admin removed',
+      'success'
+    )
+
+  } catch {
+    showToast('Failed','error')
+  }
 }
 
 // ── Product modal ──────────────────────────────────────────────────────────
@@ -698,5 +799,39 @@ onMounted(loadAll)
   .adm-dash { grid-template-columns:1fr; }
   .adm-aside { display:none; }
   .adm-section { padding:20px 16px; }
+}
+
+.adm-block-btn {
+  background:none;
+  border:1px solid #f59e0b;
+  color:#b45309;
+  padding:5px 10px;
+  border-radius:6px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.12s;
+  font-family:inherit;
+}
+
+.adm-block-btn:hover {
+  background:#fff7ed;
+}
+
+.adm-admin-btn {
+  background:none;
+  border:1px solid #7c3aed;
+  color:#7c3aed;
+  padding:5px 10px;
+  border-radius:6px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.12s;
+  font-family:inherit;
+}
+
+.adm-admin-btn:hover {
+  background:#f3e8ff;
 }
 </style>
