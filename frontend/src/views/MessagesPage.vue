@@ -71,7 +71,7 @@
               <span class="msg-chat__dot"></span>ADNU Verified Student
             </p>
           </div>
-          <span class="msg-chat__hint">Enter to send</span>
+          
         </div>
 
         <!-- Self-chat warning -->
