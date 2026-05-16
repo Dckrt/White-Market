@@ -39,8 +39,8 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
           </div>
           <div>
-            <span class="stat-num">{{ allProducts.filter(p => p.status!=='Available').length }}</span>
-            <span class="stat-lbl">Sold</span>
+            <span class="stat-num">{{ allProducts.filter(p => p.status==='Sold').length }}</span>
+            <span class="stat-lbl">Unavailable</span>
           </div>
         </div>
       </div>
@@ -59,7 +59,12 @@
 
       <!-- Grid -->
       <div v-else-if="allProducts.length" class="product-grid">
-        <div v-for="p in allProducts" :key="p.id" class="product-card">
+        <div
+  v-for="p in allProducts"
+  :key="p.id"
+  class="product-card"
+  @click="router.push(`/products/${p.id}`)"
+>
           <div class="product-card__img-wrap">
             <img v-if="p.image_url" :src="p.image_url" class="product-card__img" :alt="p.title" @error="e=>e.target.style.display='none'" />
             <div v-else class="product-card__img-empty">
@@ -67,7 +72,14 @@
             </div>
             <div class="product-card__badges">
               <span class="product-card__cat">{{ p.category }}</span>
-              <span :class="['product-card__status', p.status==='Available' ? 'product-card__status--avail' : 'product-card__status--sold']">
+              <span :class="[
+  'product-card__status',
+  p.status === 'Available'
+    ? 'product-card__status--avail'
+    : p.status === 'Reserved'
+    ? 'product-card__status--reserved'
+    : 'product-card__status--sold'
+]">
                 ● {{ p.status }}
               </span>
             </div>
@@ -81,11 +93,11 @@
             </div>
           </div>
           <div class="product-card__actions">
-            <button class="btn-edit" @click="openEdit(p)">
+            <button class="btn-edit" @click.stop="openEdit(p)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Edit
             </button>
-            <button class="btn-del" @click="confirmDelete(p)">
+            <button class="btn-del" @click.stop="confirmDelete(p)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
               Delete
             </button>
@@ -161,13 +173,28 @@
           </div>
 
           <!-- Category -->
-          <div class="mf">
-            <label class="mf__label">Category <span class="mf__req">*</span></label>
-            <select v-model="editForm.category" class="mf__select">
-              <option value="" disabled>Select category</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
+          <!-- Category -->
+<div class="mf">
+  <label class="mf__label">Category <span class="mf__req">*</span></label>
+
+  <select v-model="editForm.category" class="mf__select">
+    <option value="" disabled>Select category</option>
+    <option v-for="c in categories" :key="c" :value="c">
+      {{ c }}
+    </option>
+  </select>
+</div>
+
+<!-- Item Status -->
+<div class="mf">
+  <label class="mf__label">Item Status</label>
+
+  <select v-model="editForm.status" class="mf__select">
+    <option value="Available">Available</option>
+    <option value="Reserved">Reserved</option>
+    <option value="Sold">Sold</option>
+  </select>
+</div>
 
           <!-- Tags -->
           <div class="mf">
@@ -239,7 +266,14 @@ const loading     = ref(true)
 // Edit
 const showEdit     = ref(false)
 const saving       = ref(false)
-const editForm     = ref({ id: null, title: '', price: '', category: '', description: '' })
+const editForm = ref({
+  id: null,
+  title: '',
+  price: '',
+  category: '',
+  description: '',
+  status: 'Available'
+})
 const editFiles    = ref([])
 const editPreviews = ref([])
 const editTagsList = ref([])
@@ -276,7 +310,14 @@ const fetchProducts = async () => {
 
 // ── Edit ──────────────────────────────────────────────────────────────────
 const openEdit = (p) => {
-  editForm.value = { id: p.id, title: p.title, price: p.price, category: p.category, description: p.description || '' }
+  editForm.value = {
+  id: p.id,
+  title: p.title,
+  price: p.price,
+  category: p.category,
+  description: p.description || '',
+  status: p.status || 'Available'
+}
   editFiles.value = []
   // Load existing images as previews
   if (p.images && p.images.length) editPreviews.value = [...p.images]
@@ -328,6 +369,7 @@ const saveEdit = async () => {
   saving.value = true
   try {
     const fd = new FormData()
+    fd.append('status', editForm.value.status)
     fd.append('title',       editForm.value.title)
     fd.append('description', editForm.value.description || '')
     fd.append('price',       Number(editForm.value.price))
@@ -403,6 +445,10 @@ onMounted(fetchProducts)
 .product-card__status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
 .product-card__status--avail { background: #e8f8f0; color: #15803d; }
 .product-card__status--sold  { background: #fee8e8; color: #b91c1c; }
+.product-card__status--reserved {
+  background: #fff7e6;
+  color: #d97706;
+}
 .product-card__body { padding: 12px; }
 .product-card__title { font-size: 0.9rem; font-weight: 700; color: #003366; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .product-card__desc  { font-size: 0.78rem; color: #888; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

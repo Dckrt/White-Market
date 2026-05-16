@@ -2,7 +2,6 @@
   <div class="cart-wrapper">
     <div class="cart-container">
 
-      <!-- Header with proper logo -->
       <div class="page-header">
         <div class="header-left">
           <div class="header-icon-box">
@@ -25,13 +24,11 @@
         </router-link>
       </div>
 
-      <!-- Loading -->
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>Loading your cart…</p>
       </div>
 
-      <!-- Cart Items -->
       <div v-else-if="cartItems.length" class="items-col">
         <TransitionGroup name="cart-item" tag="div">
           <div v-for="item in cartItems" :key="item.cart_id" class="cart-card" @click="openOrder(item)">
@@ -70,7 +67,6 @@
         </TransitionGroup>
       </div>
 
-      <!-- Empty -->
       <div v-else class="empty-state">
         <div class="empty-icon">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#c0cdd8" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
@@ -175,13 +171,19 @@ const fmtPrice = (v) => Number(v).toLocaleString('en-PH', { minimumFractionDigit
 
 const fetchCart = async () => {
   if (!user) return router.push('/auth')
-  try { loading.value = true; const r = await api.getCart(user.user_id); cartItems.value = Array.isArray(r.data) ? r.data : [] }
-  catch { cartItems.value = [] } finally { loading.value = false }
+  try {
+    loading.value = true
+    const r = await api.getCart(user.user_id)
+    cartItems.value = Array.isArray(r.data) ? r.data : []
+  } catch { cartItems.value = [] }
+  finally { loading.value = false }
 }
 
 const removeItem = async (id) => {
-  try { await api.removeFromCart(id); cartItems.value = cartItems.value.filter(i => i.cart_id !== id) }
-  catch { alert('Failed to remove item.') }
+  try {
+    await api.removeFromCart(id)
+    cartItems.value = cartItems.value.filter(i => i.cart_id !== id)
+  } catch { alert('Failed to remove item.') }
 }
 
 const chatSeller = (item) => {
@@ -192,7 +194,10 @@ const openOrder = async (item) => {
   selectedItem.value = item
   checkout.value = { location: 'Xavier Hall', payment: 'Cash' }
   sellerPay.value = { gcash: null, bank: null }
-  try { const r = await api.getSellerPayment(item.seller_id); sellerPay.value = r.data || { gcash: null, bank: null } } catch {}
+  try {
+    const r = await api.getSellerPayment(item.seller_id)
+    sellerPay.value = r.data || { gcash: null, bank: null }
+  } catch {}
 }
 
 const processOrder = async () => {
@@ -207,7 +212,7 @@ const processOrder = async () => {
     })
     cartItems.value = cartItems.value.filter(i => i.cart_id !== selectedItem.value.cart_id)
     selectedItem.value = null
-    router.push('/orders') // ← IDAGDAG ITO
+    router.push('/orders') // ✅ Redirect to orders after checkout
   } catch (err) {
     alert(err.response?.data?.message || 'Checkout failed.')
   } finally { checkingOut.value = false }
@@ -223,27 +228,17 @@ onMounted(fetchCart)
 .cart-wrapper { background:#f0f4f8; min-height:100vh; padding:2rem 1.5rem; }
 .cart-container { max-width:780px; margin:0 auto; }
 
-/* Header */
 .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:12px; }
 .header-left { display:flex; align-items:center; gap:14px; }
-.header-icon-box {
-  width:52px; height:52px;
-  background:#fff;
-  border:1.5px solid #e0e8f4;
-  border-radius:14px;
-  display:flex; align-items:center; justify-content:center;
-  flex-shrink:0;
-}
+.header-icon-box { width:52px; height:52px; background:#fff; border:1.5px solid #e0e8f4; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .page-title { font-size:1.5rem; font-weight:800; color:#003366; margin:0; }
 .page-sub   { font-size:0.82rem; color:#888; margin:2px 0 0; }
 .continue-link { display:flex; align-items:center; gap:7px; font-size:0.85rem; font-weight:600; color:#003366; text-decoration:none; padding:8px 16px; border:1.5px solid #d0dbe8; border-radius:8px; background:#fff; transition:0.2s; }
 .continue-link:hover { background:#003366; color:#fff; border-color:#003366; }
 
-/* Loading */
 .loading-state { text-align:center; padding:5rem; color:#888; }
 .spinner { width:36px; height:36px; border:3px solid #e0e0e0; border-top-color:#003366; border-radius:50%; animation:spin 0.7s linear infinite; margin:0 auto 1rem; }
 
-/* Cart Card */
 .items-col { display:flex; flex-direction:column; gap:12px; }
 .cart-card { display:flex; gap:16px; background:#fff; border-radius:14px; border:1px solid #e8eef4; padding:14px; cursor:pointer; transition:box-shadow 0.2s,transform 0.2s,border-color 0.2s; }
 .cart-card:hover { box-shadow:0 4px 20px rgba(0,51,102,0.1); transform:translateY(-2px); border-color:#003366; }
@@ -268,7 +263,6 @@ onMounted(fetchCart)
 .msg-btn:hover { background:#003366; color:#FFD700; }
 .tap-hint { font-size:0.7rem; color:#bbb; }
 
-/* Empty */
 .empty-state { text-align:center; padding:5rem 2rem; background:#fff; border-radius:16px; border:1px solid #e8eef4; }
 .empty-icon { width:80px; height:80px; background:#f0f4f8; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; }
 .empty-state h3 { font-size:1.2rem; font-weight:800; color:#003366; margin:0 0 6px; }
@@ -276,7 +270,6 @@ onMounted(fetchCart)
 .browse-btn { background:#003366; color:#fff; border:none; padding:12px 28px; border-radius:10px; font-weight:700; font-size:0.9rem; cursor:pointer; font-family:inherit; transition:0.2s; }
 .browse-btn:hover { background:#002244; }
 
-/* Modal */
 .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1rem; }
 .modal-box { background:#fff; border-radius:20px; width:100%; max-width:440px; padding:1.75rem; position:relative; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
 .modal-close { position:absolute; top:16px; right:16px; width:32px; height:32px; background:#f0f4f8; border:none; border-radius:8px; color:#666; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.15s; }

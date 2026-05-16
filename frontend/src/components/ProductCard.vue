@@ -71,10 +71,21 @@
       </div>
 
       <!-- Seller -->
+      <div class="wm-card__seller-wrap">
+
       <div class="wm-card__seller">
-        <div class="wm-card__seller-av">{{ sellerInitial }}</div>
-        <span class="wm-card__seller-name">{{ product.seller_name || 'ADNU Student' }}</span>
+        <div class="wm-card__seller-av">
+          {{ sellerInitial }}
+        </div>
+
+        <span class="wm-card__seller-name">
+          {{ product.seller_name || 'ADNU Student' }}
+        </span>
       </div>
+
+      <SellerRating :rating="product.seller_rating || 0" />
+
+    </div>
 
       <!-- Footer -->
       <div class="wm-card__footer">
@@ -93,9 +104,15 @@
       </div>
     </div>
   </div>
+  
 </template>
 
+
+
+
+
 <script setup>
+import SellerRating from '@/components/RatingStars.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
@@ -189,4 +206,10 @@ const addToCart = async () => {
 .wm-card__buy-btn { background:#003366; color:#fff; border:none; border-radius:8px; padding:0 14px; height:34px; font-weight:700; font-size:0.82rem; cursor:pointer; transition:0.15s; font-family:inherit; }
 .wm-card__buy-btn:hover:not(:disabled) { background:#002244; }
 .wm-card__buy-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+.wm-card__seller-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
 </style>

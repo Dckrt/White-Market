@@ -14,11 +14,11 @@
             <h1 class="notif-header__title">Notifications</h1>
             <p class="notif-header__sub">
               <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }} unread</span>
-              <span v-else>All caught up ✓</span>
+              <span v-else class="all-read">All caught up ✓</span>
             </p>
           </div>
         </div>
-        <button v-if="unreadCount > 0" class="mark-all-btn" @click="markAllRead">
+        <button v-if="hasUnread" class="mark-all-btn" @click="markAllRead">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Mark all read
         </button>
@@ -49,12 +49,10 @@
             :key="notif.id"
             :class="['notif-card', !notif.is_read && 'notif-card--unread']"
           >
-            <!-- Left accent dot -->
             <div class="notif-dot-wrap">
               <span :class="['notif-dot', !notif.is_read && 'notif-dot--active']"></span>
             </div>
 
-            <!-- Icon based on message type -->
             <div class="notif-icon-wrap">
               <span v-if="notif.message.includes('order') || notif.message.includes('Order')" class="notif-icon notif-icon--order">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
@@ -70,7 +68,6 @@
               </span>
             </div>
 
-            <!-- Content -->
             <div class="notif-content">
               <p class="notif-message">{{ notif.message }}</p>
               <span class="notif-time">
@@ -79,7 +76,6 @@
               </span>
             </div>
 
-            <!-- Unread indicator -->
             <span v-if="!notif.is_read" class="new-chip">New</span>
           </div>
         </TransitionGroup>
@@ -97,13 +93,13 @@ const notifications = ref([])
 const loading       = ref(true)
 const user          = JSON.parse(localStorage.getItem('user'))
 
-// Auto-refresh interval (30 seconds)
 let refreshInterval = null
 
-const unreadCount = computed(() =>
-  notifications.value.filter(n => !n.is_read).length
-)
+// ── Computed ────────────────────────────────────────────────────────────────
+const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
+const hasUnread   = computed(() => unreadCount.value > 0)
 
+// ── Fetch ────────────────────────────────────────────────────────────────────
 const fetchNotifications = async (showLoader = false) => {
   if (showLoader) loading.value = true
   try {
@@ -117,37 +113,59 @@ const fetchNotifications = async (showLoader = false) => {
   }
 }
 
+// ── Mark all read ─────────────────────────────────────────────────────────────
+// Updates locally immediately (no flicker), then calls the API,
+// and also clears whatever global unread count your navbar is tracking.
 const markAllRead = async () => {
+  // 1. Optimistically update local list so the UI clears right away
+  notifications.value = notifications.value.map(n => ({ ...n, is_read: 1 }))
+
+  // 2. Clear the global navbar badge.
+  //    This handles the three most common patterns — use whichever your app uses:
+
+  // Option A — Pinia store (e.g. useNotifStore)
+  // import { useNotifStore } from '@/stores/notif'
+  // useNotifStore().unreadCount = 0
+
+  // Option B — Vuex store
+  // import { useStore } from 'vuex'
+  // useStore().commit('SET_NOTIF_COUNT', 0)
+
+  // Option C — localStorage + custom event (works without any store)
+  localStorage.setItem('notif_unread', '0')
+  window.dispatchEvent(new CustomEvent('notif-cleared'))
+
+  // 3. Persist to backend
   try {
     await api.markNotificationsRead(user.user_id)
-    // Update locally without refetch
-    notifications.value = notifications.value.map(n => ({ ...n, is_read: 1 }))
   } catch (err) {
     console.error('Mark read error:', err)
   }
 }
 
+// ── Format date ───────────────────────────────────────────────────────────────
 const formatDate = (date) => {
   if (!date) return ''
-  const d = new Date(date)
-  const now = new Date()
-  const diff = Math.floor((now - d) / 1000)
-
-  if (diff < 60)          return 'Just now'
-  if (diff < 3600)        return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400)       return `${Math.floor(diff / 3600)}h ago`
-  if (diff < 604800)      return `${Math.floor(diff / 86400)}d ago`
+  const d    = new Date(date)
+  const diff = Math.floor((Date.now() - d) / 1000)
+  if (diff < 60)     return 'Just now'
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
   return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (!user) return
   await fetchNotifications(true)
-  // Mark all as read after viewing
-  if (unreadCount.value > 0) {
+
+  // Auto-mark all read as soon as the page is opened — this is the fix
+  // for the badge not clearing when the user clicks Notifications.
+  if (hasUnread.value) {
     await markAllRead()
   }
-  // Auto-refresh every 30s
+
   refreshInterval = setInterval(() => fetchNotifications(), 30000)
 })
 
@@ -157,7 +175,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin  { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 .notif-page { background: #f0f4f8; min-height: 100vh; padding: 2rem 1.5rem; }
@@ -169,8 +187,8 @@ onUnmounted(() => {
 .notif-header__icon { width: 50px; height: 50px; background: #fff; border: 1.5px solid #e0e8f4; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .notif-header__title { font-size: 1.4rem; font-weight: 800; color: #003366; margin: 0 0 3px; }
 .notif-header__sub { font-size: 0.82rem; color: #888; margin: 0; }
-
 .unread-badge { background: #003366; color: #FFD700; font-size: 0.75rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; }
+.all-read { color: #15803d; font-weight: 600; }
 
 .mark-all-btn { display: flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid #d0dbe8; color: #003366; font-size: 0.82rem; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-family: inherit; }
 .mark-all-btn:hover { background: #003366; color: #FFD700; border-color: #003366; }
@@ -188,11 +206,7 @@ onUnmounted(() => {
 /* List */
 .notif-list { display: flex; flex-direction: column; gap: 10px; }
 
-.notif-card {
-  display: flex; align-items: flex-start; gap: 12px;
-  background: #fff; border: 1px solid #e8edf4; border-radius: 14px;
-  padding: 14px 16px; position: relative; transition: box-shadow 0.2s;
-}
+.notif-card { display: flex; align-items: flex-start; gap: 12px; background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 14px 16px; position: relative; transition: box-shadow 0.2s; }
 .notif-card:hover { box-shadow: 0 4px 16px rgba(0,51,102,0.08); }
 .notif-card--unread { background: #f8faff; border-color: #c5d5ef; }
 

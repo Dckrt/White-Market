@@ -38,10 +38,17 @@ export default {
   checkout:        (data) => api.post('/checkout', data),
   getOrders:       (uid)  => api.get('/orders', { params: { buyer_id: uid } }),
   getSellerOrders: (uid)  => api.get('/orders/seller', { params: { seller_id: uid } }),
+  updateOrderStatus: (id, data) => api.put(`/orders/${id}/status`, data),
 
   // Messages
   sendMessage:       (data)  => api.post('/messages', data),
-  getMessages:       (s, r)  => api.get('/messages', { params: { sender_id: s, receiver_id: r } }),
+  getMessages: (s, r) =>
+  api.get('/messages', {
+    params: {
+      sender_id: s,
+      receiver_id: r
+    }
+  }),
   getThreads:        (uid)   => api.get('/messages/threads', { params: { user_id: uid } }),
   markMessagesRead:  (data)  => api.post('/messages/mark-read', data),
   getUnreadCount:    (uid)   => api.get('/messages/unread-count', { params: { user_id: uid } }),
@@ -68,5 +75,9 @@ export default {
   adminDeleteProduct: (id)   => api.delete(`/admin/products/${id}`),
   adminOrders:        ()     => api.get('/admin/orders'),
   adminMessages:      ()     => api.get('/admin/messages'),
+  adminAnalytics:     ()     => api.get('/admin/analytics'),
+  addReview:          (data) => api.post('/reviews', data),
+  getSellerReviews: (id) =>
+  api.get(`/sellers/${id}/reviews`),
   
 }

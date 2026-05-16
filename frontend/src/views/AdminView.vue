@@ -51,6 +51,8 @@
             <h1 class="adm-section__title">Overview</h1>
             <p class="adm-section__sub">AdnuMarket platform at a glance</p>
           </div>
+
+          <!-- Stat cards -->
           <div class="adm-stat-grid">
             <div class="adm-stat" v-for="s in statCards" :key="s.label">
               <div class="adm-stat__icon" :style="`background:${s.bg}`">
@@ -61,8 +63,58 @@
                 <span class="adm-stat__lbl">{{ s.label }}</span>
               </div>
             </div>
+            <!-- Total revenue card (from analytics) -->
+            <div class="adm-stat" v-if="analytics">
+              <div class="adm-stat__icon" style="background:#e8f8f0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              </div>
+              <div>
+                <span class="adm-stat__num">₱{{ fmtPrice(analytics.total_sales) }}</span>
+                <span class="adm-stat__lbl">Total Revenue</span>
+              </div>
+            </div>
           </div>
 
+          <!-- Analytics charts -->
+          <div class="analytics-grid" v-if="analytics">
+            <!-- Orders by status bar chart -->
+            <div class="chart-card">
+              <h3 class="chart-title">Orders by Status</h3>
+              <Bar
+  v-if="salesChart"
+  :data="salesChart"
+  :options="barOptions"
+  :height="260"
+/>
+              <p v-else class="adm-empty">No order data yet</p>
+            </div>
+
+            <!-- Top categories doughnut -->
+            <div class="chart-card">
+              <h3 class="chart-title">Listings by Category</h3>
+              <div class="doughnut-wrap">
+                <Doughnut
+  v-if="tagsChart"
+  :data="tagsChart"
+  :options="doughnutOptions"
+  :height="220"
+/>
+                <p v-else class="adm-empty">No category data yet</p>
+              </div>
+              <!-- Legend -->
+              <ul class="chart-legend" v-if="tagsChart">
+                <li v-for="(label, i) in tagsChart.labels" :key="label" class="chart-legend__item">
+                  <span class="chart-legend__dot" :style="`background:${categoryColors[i % categoryColors.length]}`"></span>
+                  {{ label }} ({{ tagsChart.datasets[0].data[i] }})
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div v-else-if="loadingAnalytics" class="analytics-loading">
+            <span class="adm-spinner"></span> Loading analytics…
+          </div>
+
+          <!-- Recent listings -->
           <h2 class="adm-subtitle" style="margin-top:28px;margin-bottom:12px">Recent Listings</h2>
           <div class="adm-list">
             <p v-if="!recentProds.length" class="adm-empty">No listings yet.</p>
@@ -162,7 +214,7 @@
                   <span class="adm-spinner"></span> Loading…
                 </td></tr>
                 <tr v-else-if="!filteredUsers.length"><td colspan="9" class="adm-table__empty">No users found</td></tr>
-                <tr v-for="u in filteredUsers" :key="u.id" class="adm-table__row">
+                <tr v-for="(u, i) in filteredUsers" :key="u.id" class="adm-table__row">
                   <td class="adm-table__id">{{ u.id }}</td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px">
@@ -179,18 +231,55 @@
                     <span v-if="u.is_blocked" class="adm-status adm-status--sold">Blocked</span>
                     <span v-else class="adm-status adm-status--avail">Active</span>
                   </td>
-                  <td>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap">
-                      <button class="adm-edit-btn"  @click="openEditUser(u)">Edit</button>
-                      <button class="adm-block-btn" @click="u.is_blocked ? unblockUser(u) : openBlockModal(u)">
-                        {{ u.is_blocked ? 'Unblock' : 'Block' }}
-                      </button>
-                      <button class="adm-admin-btn" @click="toggleAdmin(u)">
-                        {{ u.is_admin ? 'Remove Admin' : 'Make Admin' }}
-                      </button>
-                      <button class="adm-del-btn" @click="confirmDelete('user', u)">Delete</button>
-                    </div>
-                  </td>
+                  <td class="adm-actions-cell">
+
+  <button
+    class="adm-more-btn"
+    @click="toggleUserMenu(u.id)"
+  >
+    ⋯
+  </button>
+
+  <div
+    v-if="openMenuId === u.id"
+    class="adm-action-menu"  :class="{
+    'menu-up': i >= filteredUsers.length - 2
+  }"
+  >
+    <button
+      class="adm-action-item"
+      @click="
+  openMenuId = null;
+  openEditUser(u)
+"
+    >
+      Edit
+    </button>
+
+    <button
+      class="adm-action-item"
+      @click="u.is_blocked ? unblockUser(u) : openBlockModal(u)"
+    >
+      {{ u.is_blocked ? 'Unblock' : 'Block' }}
+    </button>
+
+    <button
+      class="adm-action-item"
+      @click="toggleAdmin(u)"
+    >
+      {{ u.is_admin ? 'Remove Admin' : 'Make Admin' }}
+    </button>
+
+    <button
+      class="adm-action-item adm-action-item--danger"
+      @click="confirmDelete('user', u)"
+    >
+      Delete
+    </button>
+
+  </div>
+
+</td>
                 </tr>
               </tbody>
             </table>
@@ -350,15 +439,32 @@
             <div class="mf"><label>ADNU Email *</label><input v-model="userForm.email" class="mf-input" placeholder="@gbox.adnu.edu.ph" :disabled="!!editingUser"/></div>
             <div class="mf" v-if="!editingUser"><label>Password *</label><input v-model="userForm.password" type="password" class="mf-input" placeholder="Min 6 characters"/></div>
             <div class="mf"><label>Student ID</label><input v-model="userForm.student_id" class="mf-input" placeholder="e.g. 2024-00001"/></div>
-            <div class="mf"><label>Course</label><input v-model="userForm.course" class="mf-input" placeholder="e.g. BS Information Technology"/></div>
             <div class="mf">
+              <div class="mf">
               <label>Year Level</label>
               <select v-model="userForm.year_level" class="mf-select">
-                <option value="">— Select —</option>
+                <option value="">Select Year</option>
                 <option v-for="y in ['1st Year','2nd Year','3rd Year','4th Year','Graduate']" :key="y" :value="y">{{ y }}</option>
               </select>
             </div>
-            <div class="mf"><label>Department</label><input v-model="userForm.department" class="mf-input" placeholder="e.g. College of Computer Studies"/></div>
+            <label>Department / College</label>
+            <select v-model="userForm.department" class="mf-select" @change="userForm.course = ''">
+            <option value="">Select College</option>
+            <option v-for="(courses, dept) in departmentMap" :key="dept" :value="dept">{{ dept }}
+            </option>
+            </select>
+            </div>
+
+            <div class="mf" v-if="userForm.department">
+            <label>Course / Program</label>
+            <select v-model="userForm.course" class="mf-select">
+            <option value="">Select program</option>
+            <option v-for="course in filteredCourses" :key="course" :value="course">{{ course }}
+            </option>
+            </select>
+            </div>
+          
+            
           </div>
           <button class="modal-submit" @click="saveUser" :disabled="savingUser">
             {{ savingUser ? 'Saving…' : (editingUser ? 'Save Changes' : 'Create User') }}
@@ -368,7 +474,6 @@
     </Transition>
 
     <!-- ══ BLOCK USER MODAL ════════════════════════════════════════════════ -->
-    <!-- FIX: replaced browser prompt() with a proper modal -->
     <Transition name="modal">
       <div v-if="showBlockModal" class="modal-backdrop" @click.self="showBlockModal = false">
         <div class="modal-box" style="max-width:380px">
@@ -444,7 +549,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, h } from 'vue'
+import { Bar, Doughnut } from 'vue-chartjs'
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js'
+Chart.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 import api from '@/services/api'
 
 // ── Icons ──────────────────────────────────────────────────────────────────
@@ -455,11 +571,11 @@ const IconMsg   = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24
 const IconOrder = { render: () => h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round'},[h('path',{d:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2'}),h('rect',{x:9,y:3,width:6,height:4,rx:2}),h('path',{d:'M9 12h6M9 16h4'})]) }
 
 const tabs = [
-  { key:'overview', label:'Overview',  icon:IconGrid,  badge:'' },
-  { key:'products', label:'Products',  icon:IconBox,   badge:'products' },
+  { key:'overview', label:'Overview',  icon:IconGrid  },
+  { key:'products', label:'Products',  icon:IconBox,  badge:'products' },
   { key:'users',    label:'Users',     icon:IconUsers, badge:'users' },
   { key:'orders',   label:'Orders',    icon:IconOrder, badge:'orders' },
-  { key:'messages', label:'Messages',  icon:IconMsg,   badge:'messages' },
+  { key:'messages', label:'Messages',  icon:IconMsg,  badge:'messages' },
 ]
 
 const statCards = [
@@ -472,48 +588,119 @@ const statCards = [
 const categories = ['Textbooks','Electronics','Dorm Items','Uniforms','School Supplies','Food','Services','Others']
 
 const blockOptions = [
-  { value:'1h',      label:'1 Hour',    desc:'Expires in 1 hour',   type:'hours', duration:1 },
-  { value:'24h',     label:'1 Day',     desc:'Expires in 24 hours', type:'hours', duration:24 },
-  { value:'168h',    label:'1 Week',    desc:'Expires in 7 days',   type:'hours', duration:168 },
-  { value:'custom',  label:'Custom',    desc:'Set your own hours',  type:'hours', duration:null },
-  { value:'perm',    label:'Permanent', desc:'Until manually lifted', type:'permanent', duration:null },
+  { value:'1h',     label:'1 Hour',    desc:'Expires in 1 hour',    type:'hours', duration:1 },
+  { value:'24h',    label:'1 Day',     desc:'Expires in 24 hours',  type:'hours', duration:24 },
+  { value:'168h',   label:'1 Week',    desc:'Expires in 7 days',    type:'hours', duration:168 },
+  { value:'custom', label:'Custom',    desc:'Set your own hours',   type:'hours', duration:null },
+  { value:'perm',   label:'Permanent', desc:'Until manually lifted', type:'permanent', duration:null },
+]
+
+// ── Chart color palette ────────────────────────────────────────────────────
+const categoryColors = [
+  '#003366','#FFD700','#1D9E75','#D85A30','#7c3aed',
+  '#3B8BD4','#E85D24','#639922','#D4537E','#888780',
 ]
 
 // ── State ──────────────────────────────────────────────────────────────────
-const activeTab    = ref('overview')
-const stats        = ref({})
-const recentProds  = ref([])
-const allProds     = ref([])
-const allUsers     = ref([])
-const allMsgs      = ref([])
-const allOrders    = ref([])
-const loadingProds  = ref(false)
-const loadingUsers  = ref(false)
-const loadingMsgs   = ref(false)
-const loadingOrders = ref(false)
-const prodSearch    = ref('')
-const userSearch    = ref('')
-const msgSearch     = ref('')
-const orderSearch   = ref('')
-const toast         = ref({ show:false, text:'', type:'' })
-let   toastTimer    = null
+const activeTab      = ref('overview')
+const stats          = ref({})
+const recentProds    = ref([])
+const allProds       = ref([])
+const allUsers       = ref([])
+const allMsgs        = ref([])
+const allOrders      = ref([])
+const analytics      = ref(null)
+const loadingAnalytics = ref(false)
+const loadingProds   = ref(false)
+const loadingUsers   = ref(false)
+const loadingMsgs    = ref(false)
+const loadingOrders  = ref(false)
+const salesChart     = ref(null)
+const tagsChart      = ref(null)
+const prodSearch     = ref('')
+const userSearch     = ref('')
+const msgSearch      = ref('')
+const orderSearch    = ref('')
+const toast          = ref({ show:false, text:'', type:'' })
+let   toastTimer     = null
 
 // Product modal
-const showProdModal = ref(false)
-const editingProd   = ref(null)
-const savingProd    = ref(false)
-const prodForm      = ref({ title:'', price:'', category:'', seller_id:'', description:'', tags:'' })
-// FIX: track which previews are existing URLs vs new blob URLs separately
-const existingImages = ref([])  // URLs already on server
-const prodFiles      = ref([])  // new File objects (parallel to blob previews)
-const prodPreviews   = ref([])  // all preview URLs shown in UI
+const showProdModal  = ref(false)
+const editingProd    = ref(null)
+const savingProd     = ref(false)
+const prodForm       = ref({ title:'', price:'', category:'', seller_id:'', description:'', tags:'' })
+const existingImages = ref([])
+const prodFiles      = ref([])
+const prodPreviews   = ref([])
 const prodFileRef    = ref(null)
 
 // User modal
-const showUserModal = ref(false)
-const editingUser   = ref(null)
-const savingUser    = ref(false)
-const userForm      = ref({ name:'', email:'', password:'', student_id:'', course:'', year_level:'', department:'' })
+const showUserModal  = ref(false)
+const editingUser    = ref(null)
+const savingUser     = ref(false)
+const userForm       = ref({ name:'', email:'', password:'', student_id:'', course:'', year_level:'', department:'' })
+const openMenuId = ref(null)
+
+const toggleUserMenu = (id) => {
+  openMenuId.value =
+    openMenuId.value === id
+      ? null
+      : id
+}
+
+const closeMenus = (e) => {
+
+  if (
+    !e.target.closest('.adm-more-btn') &&
+    !e.target.closest('.adm-action-menu')
+  ) {
+    openMenuId.value = null
+  }
+}
+
+const departmentMap = {
+  "COLLEGE OF BUSINESS AND ACCOUNTANCY": [
+    "BS Accountancy", "BS BA Accounting Information Management",
+    "BS BA Financial Management and Accounting",
+    "BS Entrepreneurship with specialized track on Tourism",
+    "BS Tourism Management", "BS BA Banking and Finance",
+    "BS BA Business Management Honors Program", "BS BA Legal Management",
+    "BS BA Management", "BS BA Marketing Management"
+  ],
+  "COLLEGE OF COMPUTER STUDIES": [
+    "Bachelor of Library and Information Science", "BS Computer Science",
+    "BS Digital Illustration and Animation", "BS Information Systems",
+    "BS Information Technology"
+  ],
+  "COLLEGE OF EDUCATION": [
+    "Bachelor of Early Childhood Education", "Bachelor of Elementary Education",
+    "Bachelor of Physical Education",
+    "Bachelor of Secondary Education major in English",
+    "Bachelor of Secondary Education major in Filipino",
+    "Bachelor of Secondary Education major in Mathematics",
+    "Bachelor of Secondary Education major in Science",
+    "Bachelor of Secondary Education major in Social Studies",
+    "Bachelor of Special Needs Education – Generalist"
+  ],
+  "COLLEGE OF HUMANITIES AND SOCIAL SCIENCES": [
+    "AB Communication", "AB Economics", "AB English Language Studies",
+    "AB Literature", "AB Philosophy Track 2: Pre-Law",
+    "AB Philosophy Track 3: Foreign Service/International Relations",
+    "AB Political Science", "AB Religious and Values Education",
+    "BS Development Communication", "BS Psychology"
+  ],
+  "COLLEGE OF SCIENCE AND ENGINEERING": [
+    "BS Biology", "BS Civil Engineering", "BS Architecture",
+    "BS Computer Engineering", "BS Electronics Engineering",
+    "BS Environmental Management", "BS Mathematics",
+    "Bachelor of Engineering Technology major in Computer Engineering Technology"
+  ],
+  "COLLEGE OF NURSING": ["BS Nursing"]
+}
+
+const filteredCourses = computed(() => {
+  return departmentMap[userForm.value.department] || []
+})
 
 // Block modal
 const showBlockModal = ref(false)
@@ -523,8 +710,32 @@ const blockForm      = ref({ preset:'24h', customHours:48, reason:'' })
 
 // Confirm delete modal
 const showConfirmModal = ref(false)
-const confirmTarget    = ref(null)   // { type: 'product'|'user', item }
+const confirmTarget    = ref(null)
 const deletingItem     = ref(false)
+
+// ── Chart options ──────────────────────────────────────────────────────────
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} orders` } },
+  },
+  scales: {
+    x: { grid: { display: false } },
+    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+  },
+}
+
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} listings` } },
+  },
+  cutout: '62%',
+}
 
 // ── Computed ───────────────────────────────────────────────────────────────
 const filteredProds  = computed(() => {
@@ -544,20 +755,73 @@ const filteredOrders = computed(() => {
   return q ? allOrders.value.filter(o => `${o.product_title} ${o.buyer_name} ${o.seller_name}`.toLowerCase().includes(q)) : allOrders.value
 })
 
-// FIX: sidebar badges now use unread message count, not total
 const unreadMsgCount = computed(() => allMsgs.value.filter(m => !m.is_read).length)
 const navBadge = (tab) => {
   if (tab.key === 'messages') return unreadMsgCount.value || ''
-  return stats.value[tab.badge] || ''
+  if (tab.badge) return stats.value[tab.badge] || ''
+  return ''
+}
+
+// ── Build charts from analytics response ──────────────────────────────────
+function buildCharts(data) {
+  // Orders by status — bar chart
+  const statusMap = data.by_status || {}
+  const statusLabels = Object.keys(statusMap)
+  const statusColors = statusLabels.map(s =>
+    s === 'Completed' ? '#1D9E75' : s === 'Cancelled' ? '#D85A30' : '#003366'
+  )
+  if (statusLabels.length) {
+    salesChart.value = {
+      labels: statusLabels,
+      datasets: [{
+        label: 'Orders',
+        data: statusLabels.map(k => statusMap[k]),
+        backgroundColor: statusColors,
+        borderRadius: 6,
+        borderSkipped: false,
+      }],
+    }
+  } else {
+    salesChart.value = null
+  }
+
+  // Listings by category — doughnut
+  const cats = (data.tags || []).filter(t => t.tag && t.count > 0)
+  if (cats.length) {
+    tagsChart.value = {
+      labels: cats.map(t => t.tag),
+      datasets: [{
+        data: cats.map(t => t.count),
+        backgroundColor: cats.map((_, i) => categoryColors[i % categoryColors.length]),
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 6,
+      }],
+    }
+  } else {
+    tagsChart.value = null
+  }
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
 const loadAll = async () => {
   try { stats.value = (await api.adminStats()).data } catch {}
+
+  loadingAnalytics.value = true
+  try {
+    const res = await api.adminAnalytics()
+    analytics.value = res.data
+    buildCharts(res.data)
+  } catch (e) {
+    console.warn('Analytics endpoint not available:', e.message)
+    analytics.value = null
+  } finally {
+    loadingAnalytics.value = false
+  }
+
   try { recentProds.value = (await api.adminProducts()).data } catch {}
 }
 
-// FIX: always reload data when switching tabs (not just when empty)
 const switchTab = (k) => {
   activeTab.value = k
   if (k === 'products') loadProds()
@@ -566,12 +830,12 @@ const switchTab = (k) => {
   if (k === 'orders')   loadOrdersTab()
 }
 
-const loadProds    = async () => { loadingProds.value=true;  try { allProds.value  = (await api.adminProducts()).data  } catch { showToast('Failed to load products','error') } finally { loadingProds.value=false } }
-const loadUsers    = async () => { loadingUsers.value=true;  try { allUsers.value  = (await api.adminUsers()).data     } catch { showToast('Failed to load users','error')    } finally { loadingUsers.value=false } }
-const loadMsgsTab  = async () => { loadingMsgs.value=true;   try { allMsgs.value   = (await api.adminMessages()).data  } catch { showToast('Failed to load messages','error') } finally { loadingMsgs.value=false } }
-const loadOrdersTab= async () => { loadingOrders.value=true; try { allOrders.value = (await api.adminOrders()).data   } catch { showToast('Failed to load orders','error')   } finally { loadingOrders.value=false } }
+const loadProds     = async () => { loadingProds.value=true;  try { allProds.value  = (await api.adminProducts()).data  } catch { showToast('Failed to load products','error') } finally { loadingProds.value=false } }
+const loadUsers     = async () => { loadingUsers.value=true;  try { allUsers.value  = (await api.adminUsers()).data     } catch { showToast('Failed to load users','error')    } finally { loadingUsers.value=false } }
+const loadMsgsTab   = async () => { loadingMsgs.value=true;   try { allMsgs.value   = (await api.adminMessages()).data  } catch { showToast('Failed to load messages','error') } finally { loadingMsgs.value=false } }
+const loadOrdersTab = async () => { loadingOrders.value=true; try { allOrders.value = (await api.adminOrders()).data   } catch { showToast('Failed to load orders','error')   } finally { loadingOrders.value=false } }
 
-// ── Confirm Delete (modal replaces browser confirm()) ─────────────────────
+// ── Confirm Delete ─────────────────────────────────────────────────────────
 const confirmDelete = (type, item) => {
   confirmTarget.value = { type, item }
   showConfirmModal.value = true
@@ -605,19 +869,13 @@ const openBlockModal = (u) => {
   showBlockModal.value = true
 }
 
-const selectBlockPreset = (opt) => {
-  blockForm.value.preset = opt.value
-}
+const selectBlockPreset = (opt) => { blockForm.value.preset = opt.value }
 
-// FIX: unblock is a separate clean function — no mutation before API call
 const unblockUser = async (u) => {
   try {
     await api.adminBlockUser(u.id, { action: 'unblock' })
-    // Only update local state after success
     const idx = allUsers.value.findIndex(x => x.id === u.id)
-    if (idx >= 0) {
-      allUsers.value[idx] = { ...allUsers.value[idx], is_blocked: 0, block_until: null }
-    }
+    if (idx >= 0) allUsers.value[idx] = { ...allUsers.value[idx], is_blocked: 0, block_until: null }
     showToast('User unblocked', 'success')
   } catch {
     showToast('Failed to unblock', 'error')
@@ -627,19 +885,12 @@ const unblockUser = async (u) => {
 const executeBlock = async () => {
   const u = blockTarget.value
   if (!u) return
-
   const preset = blockOptions.find(o => o.value === blockForm.value.preset)
   if (!preset) return
-
-  // FIX: validate custom hours before sending
   if (preset.value === 'custom') {
     const h = Number(blockForm.value.customHours)
-    if (!h || h < 1 || h > 8760) {
-      showToast('Enter a valid hour count (1–8760)', 'error')
-      return
-    }
+    if (!h || h < 1 || h > 8760) { showToast('Enter a valid hour count (1–8760)', 'error'); return }
   }
-
   blockingUser.value = true
   try {
     const payload = preset.value === 'perm'
@@ -647,14 +898,9 @@ const executeBlock = async () => {
       : preset.value === 'custom'
         ? { action:'block', block_type:'hours', duration: Number(blockForm.value.customHours) }
         : { action:'block', block_type:'hours', duration: preset.duration }
-
     await api.adminBlockUser(u.id, payload)
-
-    // Only mutate after successful API call
     const idx = allUsers.value.findIndex(x => x.id === u.id)
-    if (idx >= 0) {
-      allUsers.value[idx] = { ...allUsers.value[idx], is_blocked: 1 }
-    }
+    if (idx >= 0) allUsers.value[idx] = { ...allUsers.value[idx], is_blocked: 1 }
     showToast(`${u.name} blocked`, 'success')
     showBlockModal.value = false
   } catch {
@@ -664,28 +910,64 @@ const executeBlock = async () => {
   }
 }
 
-// FIX: toggleAdmin — capture current value BEFORE flip so toast is correct
 const toggleAdmin = async (u) => {
-  const wasAdmin = !!u.is_admin
-  const newVal   = wasAdmin ? 0 : 1
+
+  const newVal = u.is_admin ? 0 : 1
+
   try {
-    await api.adminUpdateUser(u.id, { is_admin: newVal })
-    const idx = allUsers.value.findIndex(x => x.id === u.id)
-    if (idx >= 0) allUsers.value[idx] = { ...allUsers.value[idx], is_admin: newVal }
-    showToast(newVal ? `${u.name} is now admin` : `Admin removed from ${u.name}`, 'success')
-  } catch {
-    showToast('Failed to update role', 'error')
+
+    await api.adminUpdateUser(
+      u.id,
+      {
+        name: u.name,
+        student_id: u.student_id,
+        course: u.course,
+        year_level: u.year_level,
+        department: u.department,
+
+        is_admin: newVal
+      }
+    )
+
+    const idx =
+      allUsers.value.findIndex(
+        x => x.id === u.id
+      )
+
+    if (idx >= 0) {
+
+      allUsers.value[idx] = {
+        ...allUsers.value[idx],
+        is_admin: newVal
+      }
+    }
+
+    showToast(
+      newVal
+        ? `${u.name} is now admin`
+        : `Admin removed from ${u.name}`,
+      'success'
+    )
+
+  } catch (err) {
+
+    console.error(err)
+
+    showToast(
+      'Failed to update role',
+      'error'
+    )
   }
 }
 
 // ── Product modal ──────────────────────────────────────────────────────────
 const openAddProduct = () => {
-  editingProd.value  = null
-  prodForm.value     = { title:'', price:'', category:'', seller_id:'', description:'', tags:'' }
-  prodFiles.value    = []
+  editingProd.value    = null
+  prodForm.value       = { title:'', price:'', category:'', seller_id:'', description:'', tags:'' }
+  prodFiles.value      = []
   existingImages.value = []
-  prodPreviews.value = []
-  showProdModal.value = true
+  prodPreviews.value   = []
+  showProdModal.value  = true
 }
 
 const openEditProduct = (p) => {
@@ -698,17 +980,10 @@ const openEditProduct = (p) => {
     description: p.description || '',
     tags:        Array.isArray(p.tags) ? p.tags.filter(Boolean).join(',') : (p.tags || ''),
   }
-  prodFiles.value = []
-  // FIX: track existing server images separately so removeProdImage is unambiguous
-  if (p.images && p.images.length) {
-    existingImages.value = [...p.images]
-  } else if (p.image_url) {
-    existingImages.value = [p.image_url]
-  } else {
-    existingImages.value = []
-  }
-  prodPreviews.value = [...existingImages.value]
-  showProdModal.value = true
+  prodFiles.value      = []
+  existingImages.value = p.images?.length ? [...p.images] : p.image_url ? [p.image_url] : []
+  prodPreviews.value   = [...existingImages.value]
+  showProdModal.value  = true
 }
 
 const closeProdModal = () => {
@@ -718,7 +993,7 @@ const closeProdModal = () => {
   prodPreviews.value   = []
 }
 
-const triggerProdFile = () => prodFileRef.value?.click()
+const triggerProdFile      = () => prodFileRef.value?.click()
 const handleProdFileChange = (e) => processProdFiles(e.target.files)
 const handleProdDrop       = (e) => processProdFiles(e.dataTransfer.files)
 
@@ -733,17 +1008,13 @@ const processProdFiles = (files) => {
   })
 }
 
-// FIX: use separate existingImages/prodFiles arrays — no ambiguous index math
 const removeProdImage = (i) => {
   const preview = prodPreviews.value[i]
   if (preview.startsWith('blob:')) {
-    // It's a new file — find its position among blob-only previews
-    const blobPreviews = prodPreviews.value.filter(p => p.startsWith('blob:'))
-    const blobIdx = blobPreviews.indexOf(preview)
+    const blobIdx = prodPreviews.value.filter(p => p.startsWith('blob:')).indexOf(preview)
     if (blobIdx >= 0) prodFiles.value.splice(blobIdx, 1)
     URL.revokeObjectURL(preview)
   } else {
-    // It's an existing server image
     existingImages.value = existingImages.value.filter(u => u !== preview)
   }
   prodPreviews.value.splice(i, 1)
@@ -764,7 +1035,6 @@ const saveProd = async () => {
     fd.append('price',       Number(prodForm.value.price))
     fd.append('category',    prodForm.value.category)
     fd.append('tags',        prodForm.value.tags || '')
-
     if (editingProd.value) {
       fd.append('user_id', editingProd.value.seller_id)
       prodFiles.value.forEach(f => fd.append('images', f))
@@ -777,7 +1047,6 @@ const saveProd = async () => {
       showToast('Product added', 'success')
     }
     await loadProds()
-    // FIX: also refresh overview recent listings
     try { recentProds.value = (await api.adminProducts()).data } catch {}
     closeProdModal()
   } catch (e) {
@@ -835,7 +1104,7 @@ const fmtDate = (d) => {
   catch { return d }
 }
 
-const fmtPrice = (v) => Number(v).toLocaleString('en-PH', { minimumFractionDigits:2 })
+const fmtPrice = (v) => Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits:2 })
 
 const orderStatusClass = (status) => ({
   'Pending':   'adm-status--pending',
@@ -844,6 +1113,12 @@ const orderStatusClass = (status) => ({
 }[status] || 'adm-status--pending')
 
 onMounted(() => {
+
+  document.addEventListener(
+  'click',
+  closeMenus
+)
+
   loadAll()
   loadProds()
   loadUsers()
@@ -854,12 +1129,7 @@ onMounted(() => {
 
 <style scoped>
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes spinner-ring {
-  0%   { stroke-dashoffset: 88; }
-  100% { stroke-dashoffset: 0; }
-}
 
-/* Spinner */
 .adm-spinner {
   display: inline-block;
   width: 16px; height: 16px;
@@ -896,11 +1166,25 @@ onMounted(() => {
 .adm-section__title { font-size: 1.5rem; font-weight: 800; color: #003366; margin: 0 0 4px; }
 .adm-section__sub  { font-size: 0.875rem; color: #888; margin: 0; }
 .adm-subtitle { font-size: 1rem; font-weight: 700; color: #003366; margin: 0; }
+
+/* Stat grid */
 .adm-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; }
 .adm-stat { background: #fff; border: 1px solid #e2eaf4; border-radius: 14px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
 .adm-stat__icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .adm-stat__num { font-size: 1.6rem; font-weight: 800; color: #003366; line-height: 1; display: block; }
 .adm-stat__lbl { font-size: 0.78rem; color: #888; display: block; }
+
+/* Analytics */
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap: 16px; margin-top: 20px; }
+.analytics-loading { margin-top: 20px; padding: 2rem; text-align: center; color: #888; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.chart-card { background: #fff; border: 1px solid #e2eaf4; border-radius: 14px; padding: 20px; }
+.chart-title { font-size: 0.9rem; font-weight: 700; color: #003366; margin: 0 0 16px; }
+.doughnut-wrap { display: flex; justify-content: center; }
+.chart-legend { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.chart-legend__item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #555; }
+.chart-legend__dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Recent list */
 .adm-list { background: #fff; border: 1px solid #e2eaf4; border-radius: 14px; overflow: hidden; }
 .adm-empty { padding: 1.5rem; text-align: center; color: #bbb; font-size: 0.875rem; margin: 0; }
 .adm-list-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #f0f4f8; }
@@ -922,11 +1206,17 @@ onMounted(() => {
 .adm-add-btn:hover { background: #002244; }
 .adm-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #fff; border: 1.5px solid #e0e8f4; border-radius: 8px; cursor: pointer; color: #666; transition: 0.15s; flex-shrink: 0; }
 .adm-icon-btn:hover { border-color: #003366; color: #003366; }
-.adm-table-wrap { background: #fff; border: 1px solid #e2eaf4; border-radius: 14px; overflow: hidden; overflow-x: auto; }
-.adm-table { width: 100%; border-collapse: collapse; }
+.adm-table-wrap {
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 14px;
+  overflow: visible;
+  position: relative;
+}
 .adm-table thead tr { background: #f8faff; border-bottom: 1px solid #e8edf4; }
 .adm-table th { padding: 11px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
 .adm-table td { padding: 11px 14px; font-size: 0.875rem; color: #1a1a2e; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+.adm-actions-cell{ position:relative;}
 .adm-table tr:last-child td { border-bottom: none; }
 .adm-table__row:hover td { background: #f8faff; }
 .adm-table__empty { text-align: center; padding: 36px; color: #bbb; font-size: 0.875rem; }
@@ -937,15 +1227,15 @@ onMounted(() => {
 .adm-msg-preview  { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #555; font-size: 0.82rem; }
 .adm-thumb        { width: 36px; height: 36px; border-radius: 7px; object-fit: cover; display: block; background: #f0f4f8; }
 .adm-thumb--empty { width: 36px; height: 36px; border-radius: 7px; background: #f0f4f8; display: block; }
-.adm-cat-tag { display: inline-block; padding: 3px 9px; background: #eef3ff; color: #003366; border-radius: 6px; font-size: 11px; font-weight: 700; user-select: none; }
-.adm-status { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; user-select: none; }
+.adm-cat-tag { display: inline-block; padding: 3px 9px; background: #eef3ff; color: #003366; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.adm-status { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .adm-status--avail   { background: #e8f8f0; color: #15803d; }
 .adm-status--sold    { background: #fee8e8; color: #b91c1c; }
 .adm-status--pending { background: #fff8e0; color: #854d0e; }
-.adm-read { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; user-select: none; }
+.adm-read { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .adm-read--read   { background: #e8f8f0; color: #15803d; }
 .adm-read--unread { background: #fef9e0; color: #854d0e; }
-.adm-role { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; user-select: none; }
+.adm-role { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .adm-role--admin { background: #fce8ff; color: #7c3aed; }
 .adm-role--user  { background: #e8f0fe; color: #003366; }
 .adm-av { width: 28px; height: 28px; border-radius: 50%; background: #003366; color: #FFD700; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
@@ -985,7 +1275,7 @@ onMounted(() => {
 .block-option__label { font-size: 0.82rem; font-weight: 700; color: #003366; }
 .block-option__desc  { font-size: 0.72rem; color: #888; }
 
-/* Confirm delete modal */
+/* Confirm delete */
 .confirm-icon { width: 56px; height: 56px; border-radius: 50%; background: #fff5f5; border: 2px solid #fcc; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px; }
 .confirm-body { font-size: 0.875rem; color: #555; text-align: center; line-height: 1.6; margin: 0; }
 
@@ -1019,6 +1309,121 @@ onMounted(() => {
 .toast-enter-from,.toast-leave-to { opacity: 0; transform: translateY(8px); }
 .modal-enter-active,.modal-leave-active { transition: all 0.25s ease; }
 .modal-enter-from,.modal-leave-to { opacity: 0; transform: scale(0.95); }
+
+.chart-card{
+  background:#fff;
+  border:1px solid #e2eaf4;
+  border-radius:14px;
+  padding:20px;
+  min-height:350px;
+}
+
+.adm-more-btn{
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:8px;
+  background:#f4f7fb;
+  cursor:pointer;
+  font-size:20px;
+  font-weight:700;
+  color:#003366;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.adm-more-btn:hover{
+  background:#e8eef7;
+}
+
+.adm-action-menu{
+  position:absolute;
+  right:14px;
+  top:52px;
+  transform: translateY(8px);
+  background:white;
+  border:1px solid #e2eaf4;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+  z-index:9999;
+  min-width:170px;
+  overflow:visible;
+  
+}
+
+.menu-up{
+  top:auto;
+  bottom:44px;
+}
+
+.adm-table-wrap{
+  background:#fff;
+  border:1px solid #e2eaf4;
+  border-radius:14px;
+
+  overflow:visible;
+
+  position:relative;
+}
+
+.adm-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.adm-table tbody{
+  overflow:visible;
+}
+
+.adm-table tr{
+  overflow:visible;
+}
+
+.adm-actions-cell{
+  position:relative;
+  overflow:visible;
+}
+
+.adm-table{
+  overflow:visible;
+}
+
+.adm-actions-cell{
+  position:relative;
+  overflow:visible;
+}
+
+
+.adm-action-item{
+  width:100%;
+  border:none;
+  background:none;
+  padding:11px 14px;
+  text-align:left;
+  cursor:pointer;
+  font-size:.84rem;
+  color:#333;
+}
+
+.adm-action-item:hover{
+  background:#f4f7fb;
+}
+
+.adm-action-item--danger{
+  color:#c0392b;
+}
+
+.adm-actions-cell{
+  position:relative;
+  width:70px;
+  text-align:center;
+}
+
+
+
+
 
 @media (max-width: 768px) {
   .adm-dash { grid-template-columns: 1fr; }

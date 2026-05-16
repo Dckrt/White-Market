@@ -41,15 +41,20 @@ const getStarClass = (i) => {
 }
 
 .stars {
-  color: #ddd; /* Base color for empty stars */
   display: flex;
+  gap: 2px;
   font-size: 1.1rem;
   line-height: 1;
 }
 
 .star {
+  color:#ddd;
   position: relative;
   transition: transform 0.2s;
+}
+
+.star:hover{
+  transform:scale(1.08);
 }
 
 .star.filled {
